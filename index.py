@@ -387,7 +387,7 @@ class IDE():
 
     def compile_code(self):
         # Directorio donde se encuentran los archivos Java y la clase
-        java_dir = 'C:\\Users\\fabma\\UAA\\compilador\\compilador'
+        java_dir = os.path.dirname(os.path.abspath(__file__))
 
         # Cambiar al directorio donde se encuentran los archivos Java y la clase
         os.chdir(java_dir)
@@ -432,11 +432,21 @@ class IDE():
             print(e)
             return
         
+        java_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Verificar si el directorio 'salidas' existe, y si no, crearlo
+        output_dir = os.path.join(java_dir, 'salidas')
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        
         # Mostrar la salida del programa
         print(result.stdout.strip())
+        
         # Guardar en un archivo de texto
-        with open('salidas/output.txt', 'w') as file:
+        output_file = os.path.join(output_dir, 'output.txt')
+        with open(output_file, 'w') as file:
             file.write(result.stdout.strip())
+        
         cadena = result.stdout.strip()
         
         if result.returncode == 0:
