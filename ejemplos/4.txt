@@ -1,0 +1,14 @@
+program {
+    int x, y;
+    float a;
+    bool ver;
+    ver = false;
+    
+    x=0; // comentario 1
+    y=4; /* comentario 2 */
+    z=4.32;
+    while(y>=0 && ver == false){
+	if(x<y)then{y=y-1;x=x+1+z;}
+	fi
+	}
+}
