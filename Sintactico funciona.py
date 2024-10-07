@@ -132,13 +132,21 @@ class Parser:
         self.match('PA')
         node.children.append(self.parse_exp_bool())
         self.match('PC')
-        self.match('THN')
-        node.children.append(self.parse_bloque())
-        if self.current_token().type == 'ELS':
-            self.match('ELS')
+        
+        if self.current_token().type == 'LLA':  # Verifica si es un bloque
             node.children.append(self.parse_bloque())
-        self.match('FI')
+        else:
+            node.children.append(self.parse_sent())  # Si no, es una línea simple
+        
+        if self.current_token().type == 'ELS':  # Manejar el else si está presente
+            self.match('ELS')
+            if self.current_token().type == 'LLA':
+                node.children.append(self.parse_bloque())
+            else:
+                node.children.append(self.parse_sent())
+
         return node
+
 
     def parse_sent_while(self):
         node = ASTNode('sent-while')
@@ -146,14 +154,21 @@ class Parser:
         self.match('PA')
         node.children.append(self.parse_exp_bool())
         self.match('PC')
-        node.children.append(self.parse_bloque())
+        if self.current_token().type == 'LLA': # Verifica si es un bloque
+            node.children.append(self.parse_bloque())
+        else:
+            node.children.append(self.parse_sent())  # Si no, es una línea simple
         return node
 
     def parse_sent_do(self):
         node = ASTNode('sent-do')
         self.match('DO')
-        node.children.append(self.parse_bloque())
-        self.match('UNT')
+        if self.current_token().type == 'LLA': # Verifica si es un bloque
+            node.children.append(self.parse_bloque())
+        else:
+            node.children.append(self.parse_sent())  # Si no, es una línea simple
+        #self.match('UNT')
+        self.match('WHI')
         self.match('PA')
         node.children.append(self.parse_exp_bool())
         self.match('PC')
@@ -173,6 +188,12 @@ class Parser:
         self.match('LLA')
         node.children.append(self.parse_list_sent())
         self.match('LLC')
+        return node
+    
+    def parse_linea(self):
+        node = ASTNode('linea')
+        node.children.append(self.parse_sent())
+        self.match('PYC')
         return node
 
     def parse_sent_assign(self):
@@ -319,6 +340,7 @@ tokens.append(Token('EOF', 'EOF', 0, 0))
 
 output_path = 'salidas/ast'
 
+# Aquí se crea el AST y se visualiza
 try:
     parser = Parser(tokens)
     ast = parser.parse_program()

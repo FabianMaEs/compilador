@@ -119,6 +119,9 @@ class IDE():
         self.semantic_tab = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.semantic_tab, text="Semántico")
         
+        self.semantic_tab = ttk.Frame(self.analyzer_notebook)
+        self.analyzer_notebook.add(self.semantic_tab, text="Tabla de símbolos")
+        
         self.intermediate_tab = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.intermediate_tab, text="Código intermedio")
         
@@ -168,6 +171,12 @@ class IDE():
         self.semantic_text.pack(fill="both", expand=True)
         self.semantic_text.insert(tk.END, "Información semántica...")
         self.semantic_text.config(state=tk.DISABLED)
+        
+        # Crear widgets para la pestaña de tabla de símbolos
+        self.symbol_table_text = tk.Text(self.semantic_tab, wrap="word", undo=True)
+        self.symbol_table_text.pack(fill="both", expand=True)
+        self.symbol_table_text.insert(tk.END, "Tabla de símbolos...")
+        self.symbol_table_text.config(state=tk.DISABLED)
         
         # Crear widgets para la pestaña de código intermedio
         self.intermediate_text = tk.Text(self.intermediate_tab, wrap="word", undo=True)
