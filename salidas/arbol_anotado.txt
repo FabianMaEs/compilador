@@ -1,0 +1,20 @@
+program
+  list-decl
+    decl
+      tipo (int)
+      list-id
+        id (x) [tipo: int | valor: N/A]
+        id (y) [tipo: int | valor: N/A]
+    decl
+      tipo (float)
+      list-id
+        id (z) [tipo: int | valor: N/A]
+  list-sent
+    sent-assign
+      id (x) [tipo: int | valor: N/A]
+      factor (0) [valor: 0]
+    sent-assign
+      id (y) [tipo: int | valor: N/A]
+      expr (+) [valor: 0]
+        factor (23) [valor: 23]
+        factor (3) [valor: 3]

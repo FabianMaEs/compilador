@@ -1,0 +1,20 @@
+program
+  list-decl
+    decl
+      tipo (int)
+      list-id
+        id (x)
+        id (y)
+    decl
+      tipo (float)
+      list-id
+        id (z)
+  list-sent
+    sent-assign
+      id (x)
+      factor (0)
+    sent-assign
+      id (y)
+      expr (+)
+        factor (23)
+        factor (3)

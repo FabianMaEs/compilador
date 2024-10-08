@@ -1,6 +1,6 @@
 program {
     int x, y;
-    float a;
+    float a, z;
     bool ver;
     ver = false;
     
@@ -14,4 +14,3 @@ program {
         }
     }
 }
-

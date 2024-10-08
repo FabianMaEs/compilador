@@ -496,45 +496,53 @@ class IDE():
             print("Error durante la ejecucion (sintactico):")
             print(e)
             return
-        
-        try:
-            # Mostrar ast.txt en la pestaña sintáctico
-            with open('salidas/ast.txt', 'r') as file:
-                analisis_sintactico = file.read()
-            self.syntax_text.config(state=tk.NORMAL)
-            self.syntax_text.delete('1.0', tk.END)
-            self.syntax_text.insert(tk.END, analisis_sintactico)
-            self.syntax_text.config(state=tk.DISABLED)
-            
-            if(os.path.exists('salidas/ast.png')):
-                # Remove previous image
-                for widget in self.syntax_tab_image.winfo_children():
-                    widget.destroy()
-                print("Analisis sintactico grafico exitoso")
-                load = Image.open('salidas/ast.png')
-                # Redimensionar la imagen
-                resized_image = load.resize((500, 500))
-                render = ImageTk.PhotoImage(resized_image)
-                img = tk.Label(self.syntax_tab_image, image=render)
-                img.image = render
-                img.pack()
-                # Vincular el evento de clic a la función
-                img.bind("<Button-1>", self.open_full_image)
-                
-        except:
-            print("Error durante la ejecucion (arbol):")
-            print(result.stderr.strip())
-        
-        # Mostrar salidas/errors.txt en la pestaña de errores
+
+        # Verificar si el archivo errors.txt existe y comienza con "Error"
         with open('salidas/errors.txt', 'r') as file:
             errores = file.read()
+            
+        # Mostrar salidas/errors.txt en la pestaña de errores
         print("Archivo de errores creado")
         self.errors_text.config(state=tk.NORMAL)
         self.errors_text.delete('1.0', tk.END)
         self.errors_text.insert(tk.END, errores)
         self.errors_text.config(state=tk.DISABLED)
         
-        # Mostrar la imagen ast.png en la pestaña sintáctico gráfico
+        if errores.startswith("Error"):
+            print("Error durante el análisis sintáctico:")
+            self.syntax_text.config(state=tk.NORMAL)
+            self.syntax_text.delete('1.0', tk.END)
+            self.syntax_text.insert(tk.END, "Error durante el análisis sintáctico. Revise la pestaña de errores.")
+            self.syntax_text.config(state=tk.DISABLED)
+        else:
+            try:
+                # Mostrar ast.txt en la pestaña sintáctico
+                with open('salidas/ast.txt', 'r') as file:
+                    analisis_sintactico = file.read()
+                self.syntax_text.config(state=tk.NORMAL)
+                self.syntax_text.delete('1.0', tk.END)
+                self.syntax_text.insert(tk.END, analisis_sintactico)
+                self.syntax_text.config(state=tk.DISABLED)
+                
+                if(os.path.exists('salidas/ast.png')):
+                    # Remove previous image
+                    for widget in self.syntax_tab_image.winfo_children():
+                        widget.destroy()
+                    print("Analisis sintactico grafico exitoso")
+                    load = Image.open('salidas/ast.png')
+                    # Redimensionar la imagen
+                    resized_image = load.resize((500, 500))
+                    render = ImageTk.PhotoImage(resized_image)
+                    img = tk.Label(self.syntax_tab_image, image=render)
+                    img.image = render
+                    img.pack()
+                    # Vincular el evento de clic a la función
+                    img.bind("<Button-1>", self.open_full_image) 
+            except:
+                print("Error durante la ejecucion (arbol):")
+                print(result.stderr.strip())
+            
+            # Mostrar la imagen ast.png en la pestaña sintáctico gráfico
     
     def open_full_image(self, event=None):
         # Mostrar la imagen con controles de desplazamiento

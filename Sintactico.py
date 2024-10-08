@@ -329,66 +329,73 @@ def serialize_ast(node, level=0):
 with open('salidas/ast.txt', 'w') as file:
     file.write("")
     
-ast = None
-        
-tokens = []
-with open('salidas/output.txt', 'r') as file:
-    for line in file:
-        parts = line.strip().split()
-        type = parts[0]
-        value = parts[1]
-        line = parts[2]
-        column = parts[3]
-        if type not in ('COC', 'COL'):
-            tokens.append(Token(type, value, line, column))
-
-# Añadir el token EOF al final
-tokens.append(Token('EOF', 'EOF', 0, 0))
-
-output_path = 'salidas/ast'
-
-# Aquí se crea el AST y se visualiza
-try:
-    parser = Parser(tokens)
-    ast = parser.parse_program()
-
-    # Visualización del AST
-    graph = visualize_ast(ast)
-    graph.render(output_path, format='png', view=True)
-
-    # Guardar el AST en formato de texto
-    ast_text = serialize_ast(ast)
-    with open('salidas/ast.txt', 'w') as f:
-        f.write('\n'.join(ast_text))
-
-except SyntaxError as e:
-    error_message = f"Error de sintaxis: {str(e)} en la línea {parser.current_token().line} y columna {parser.current_token().column} '{parser.current_token().value}'"
-    with open('salidas/errors.txt', 'w') as error_file:
-        error_file.write(error_message)
-
-# Guardar todos los errores detectados
-if parser.errors:
-    with open('salidas/errors.txt', 'w') as error_file:
-        for error in parser.errors:
-            error_file.write(error + '\n')
-else:   
-    with open('salidas/errors.txt', 'w') as error_file:
-        error_file.write("No errors found")
-
-# Verificar si el archivo de gráfico se creó
-if os.path.exists(f"{output_path}.png"):
-    print(f"Graph successfully created at {output_path}.png")
+# Verificar si el archivo errors.txt existe y comienza con "Error"
+with open('salidas/errors.txt', 'r') as file:
+    errores = file.read()
+if errores.startswith("Error"):
+    print("Hay errores, no se puede crear el AST")
 else:
-    print(f"Failed to create graph at {output_path}.png")
+    ast = None
+            
+    tokens = []
+    with open('salidas/output.txt', 'r') as file:
+        for line in file:
+            parts = line.strip().split()
+            type = parts[0]
+            value = parts[1]
+            line = parts[2]
+            column = parts[3]
+            if type not in ('COC', 'COL'):
+                tokens.append(Token(type, value, line, column))
 
-# Verificar si el archivo AST se creó
-if os.path.exists('salidas/ast.txt'):
-    print("AST successfully written to salidas/ast.txt")
-else:
-    print("Failed to write AST to salidas/ast.txt")
+    # Añadir el token EOF al final
+    tokens.append(Token('EOF', 'EOF', 0, 0))
 
-# Verificar si el archivo de errores se creó
-if os.path.exists('salidas/errors.txt') and parser.errors:
-    print("Errors successfully written to salidas/errors.txt")
-else:
-    print("No errors found or failed to write errors to salidas/errors.txt")
+    output_path = 'salidas/ast'
+
+    # Aquí se crea el AST y se visualiza
+    try:
+        parser = Parser(tokens)
+        ast = parser.parse_program()
+
+        # Visualización del AST
+        graph = visualize_ast(ast)
+
+        graph.render(output_path, format='png', view=True)
+
+        # Guardar el AST en formato de texto
+        ast_text = serialize_ast(ast)
+        with open('salidas/ast.txt', 'w') as f:
+            f.write('\n'.join(ast_text))
+
+    except SyntaxError as e:
+        error_message = f"Error de sintaxis: {str(e)} en la línea {parser.current_token().line} y columna {parser.current_token().column} '{parser.current_token().value}'"
+        with open('salidas/errors.txt', 'w') as error_file:
+            error_file.write(error_message)
+
+    # Guardar todos los errores detectados
+    if parser.errors:
+        with open('salidas/errors.txt', 'w') as error_file:
+            for error in parser.errors:
+                error_file.write(error + '\n')
+    else:   
+        with open('salidas/errors.txt', 'w') as error_file:
+            error_file.write("No errors found")
+
+    # Verificar si el archivo de gráfico se creó
+    if os.path.exists(f"{output_path}.png"):
+        print(f"Graph successfully created at {output_path}.png")
+    else:
+        print(f"Failed to create graph at {output_path}.png")
+
+    # Verificar si el archivo AST se creó
+    if os.path.exists('salidas/ast.txt'):
+        print("AST successfully written to salidas/ast.txt")
+    else:
+        print("Failed to write AST to salidas/ast.txt")
+
+    # Verificar si el archivo de errores se creó
+    if os.path.exists('salidas/errors.txt') and parser.errors:
+        print("Errors successfully written to salidas/errors.txt")
+    else:
+        print("No errors found or failed to write errors to salidas/errors.txt")

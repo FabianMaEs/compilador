@@ -2,4 +2,8 @@ program {
     int x, y;
     float z;
     x = 0;
+    y = 23 + 3;
 }
+
+
+
