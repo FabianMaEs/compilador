@@ -3,7 +3,7 @@ program {
     x=0; // comentario 1
     y=4; /* comentario 2 */
     while (y>=0) {
-        if(x<y) then{
+        if(x<y) {
             y=y-1;
         } fi
     }

@@ -3,3 +3,4 @@ program {
 	float a;
 	bool a;
 }
+

@@ -119,8 +119,8 @@ class IDE():
         self.semantic_tab = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.semantic_tab, text="Semántico")
         
-        self.semantic_tab = ttk.Frame(self.analyzer_notebook)
-        self.analyzer_notebook.add(self.semantic_tab, text="Tabla de símbolos")
+        self.symbol_table = ttk.Frame(self.analyzer_notebook)
+        self.analyzer_notebook.add(self.symbol_table, text="Tabla de símbolos")
         
         self.intermediate_tab = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.intermediate_tab, text="Código intermedio")
@@ -173,7 +173,7 @@ class IDE():
         self.semantic_text.config(state=tk.DISABLED)
         
         # Crear widgets para la pestaña de tabla de símbolos
-        self.symbol_table_text = tk.Text(self.semantic_tab, wrap="word", undo=True)
+        self.symbol_table_text = tk.Text(self.symbol_table, wrap="word", undo=True)
         self.symbol_table_text.pack(fill="both", expand=True)
         self.symbol_table_text.insert(tk.END, "Tabla de símbolos...")
         self.symbol_table_text.config(state=tk.DISABLED)
@@ -205,6 +205,7 @@ class IDE():
             self.code_text.configure(bg='#ffffff', fg='#000000')  # Cambiar a esquema de color claro
             self.lexical_text.configure(bg='#ffffff', fg='#000000')
             self.syntax_text.configure(bg='#ffffff', fg='#000000')
+            self.symbol_table_text.configure(bg='#ffffff', fg='#000000')
             
             self.semantic_text.configure(bg='#ffffff', fg='#000000')
             self.intermediate_text.configure(bg='#ffffff', fg='#000000')
@@ -220,6 +221,7 @@ class IDE():
             self.code_text.configure(bg='#2b2b2b', fg='#ffffff')  # Cambiar a esquema de color oscuro
             self.lexical_text.configure(bg='#2b2b2b', fg='#ffffff')
             self.syntax_text.configure(bg='#2b2b2b', fg='#ffffff')
+            self.symbol_table_text.configure(bg='#2b2b2b', fg='#ffffff')
 
             self.semantic_text.configure(bg='#2b2b2b', fg='#ffffff')
             self.intermediate_text.configure(bg='#2b2b2b', fg='#ffffff')
@@ -402,6 +404,7 @@ class IDE():
         os.chdir(java_dir)
 
         # Guardar el archivo actual en uno temporal antes de compilar
+        
         if self.file_path is None or self.file_path == '':
             self.file_path = filedialog.asksaveasfilename(defaultextension=".txt")
             if self.file_path:
@@ -410,6 +413,7 @@ class IDE():
         else:
             with open(self.file_path, 'w') as file:
                 file.write(self.code_text.get('1.0', tk.END))
+        
         
         # Obtener el nombre del archivo actual
         #file_path = filedialog.asksaveasfilename(defaultextension=".java")
@@ -431,13 +435,14 @@ class IDE():
         with open(input_file, 'r') as file:
             code = file.read()
 
-        print("Código de entrada:\n" + code)
+        print("Leyendo archivo...")
         
         # Ejecutar el archivo compilado con el nombre del archivo de entrada como argumento
         try:
             result = subprocess.run(['java', 'Lexer', input_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            print("Ejecutando analisis lexico...")
         except subprocess.CalledProcessError as e:
-            print("Error durante la ejecución:")
+            print("Error durante la ejecucion (lexico):")
             print(e)
             return
         
@@ -448,8 +453,18 @@ class IDE():
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
         
+        # Dejar el archivo, pero borra el contenido
+        with open('salidas/output.txt', 'w') as file:
+            file.write("")
+        
+        with open('salidas/errors.txt', 'w') as file:
+            file.write("")
+        
+        with open('salidas/ast.txt', 'w') as file:
+            file.write("")
+        
         # Mostrar la salida del programa
-        print(result.stdout.strip())
+        # print(result.stdout.strip())
         
         # Guardar en un archivo de texto
         output_file = os.path.join(output_dir, 'output.txt')
@@ -459,6 +474,7 @@ class IDE():
         cadena = result.stdout.strip()
         
         if result.returncode == 0:
+            print("Analisis lexico exitoso")
             # Habilitar el widget Text para la edición
             self.lexical_text.config(state=tk.NORMAL)
             # Eliminar todo el texto actual en el widget Text
@@ -468,14 +484,16 @@ class IDE():
             # Deshabilitar el widget Text después de insertar el nuevo texto
             self.lexical_text.config(state=tk.DISABLED)
         else:
-            print("Error durante la ejecución:")
+            print("Error durante la ejecucion (lexico):")
             print(result.stderr.strip())
             
         # Ejecutar el sintactico.py
+        print("Ejecutando Sintactico.py")
         try:
-            result = subprocess.run(['python', 'Sintactico funciona.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            result = subprocess.run(['python', 'Sintactico.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            print("Ejecutando analisis sintactico...")
         except subprocess.CalledProcessError as e:
-            print("Error durante la ejecución:")
+            print("Error durante la ejecucion (sintactico):")
             print(e)
             return
         
@@ -492,7 +510,7 @@ class IDE():
                 # Remove previous image
                 for widget in self.syntax_tab_image.winfo_children():
                     widget.destroy()
-                
+                print("Analisis sintactico grafico exitoso")
                 load = Image.open('salidas/ast.png')
                 # Redimensionar la imagen
                 resized_image = load.resize((500, 500))
@@ -504,12 +522,13 @@ class IDE():
                 img.bind("<Button-1>", self.open_full_image)
                 
         except:
-            print("Error durante la ejecución:")
+            print("Error durante la ejecucion (arbol):")
             print(result.stderr.strip())
         
         # Mostrar salidas/errors.txt en la pestaña de errores
         with open('salidas/errors.txt', 'r') as file:
             errores = file.read()
+        print("Archivo de errores creado")
         self.errors_text.config(state=tk.NORMAL)
         self.errors_text.delete('1.0', tk.END)
         self.errors_text.insert(tk.END, errores)
@@ -520,7 +539,7 @@ class IDE():
     def open_full_image(self, event=None):
         # Mostrar la imagen con controles de desplazamiento
         top = tk.Toplevel()
-        top.title("Árbol sintáctico")
+        top.title("Árbol sintactico")
         
         # Crear un Canvas para mostrar la imagen
         canvas = tk.Canvas(top)

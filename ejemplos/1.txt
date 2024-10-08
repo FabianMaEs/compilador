@@ -1,3 +1,5 @@
 program {
     int x, y;
+    float z;
+    x = 0;
 }

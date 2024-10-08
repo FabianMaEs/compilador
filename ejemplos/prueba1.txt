@@ -7,5 +7,11 @@ program {
     x=0; // comentario 1
     y=4; /* comentario 2 */
     z=4.32;
-    while(y>=0 and ver == false){if(x<y)then{y=y-1;x=x+1+z;}fi}
+    while (y >= 0 and ver == false) {
+        if (x < y) {
+            y = y - 1;
+            x = x + 1 + z;
+        }
+    }
 }
+
