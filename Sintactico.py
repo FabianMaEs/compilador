@@ -89,6 +89,7 @@ class Parser:
             self.advance()
             return ASTNode('tipo', token.value)
         else:
+            self.errors.append(f"Error de sintaxis: Se esperaba un tipo pero se obtuvo {token.type}")
             raise SyntaxError(f"Se esperaba un tipo pero se obtuvo {token.type}")
 
     def parse_list_id(self):
@@ -115,7 +116,7 @@ class Parser:
             return self.parse_sent_while()
         elif token.type == 'DO':
             return self.parse_sent_do()
-        elif token.type == 'READ':
+        elif token.type == 'REA':
             return self.parse_sent_read()
         elif token.type == 'WRI':
             return self.parse_sent_write()
@@ -127,28 +128,33 @@ class Parser:
             raise SyntaxError(f"Token inesperado {token.type}")
 
     def parse_sent_if(self):
-        node = ASTNode('sent-if')
+        print("parse_sent_if")
+        node = ASTNode('sent-if')  # Nodo principal para el if
         self.match('IF')
-        self.match('PA')
-        node.children.append(self.parse_exp_bool())
-        self.match('PC')
+        self.match('PA')  # Paréntesis de apertura para la condición
+        node.children.append(self.parse_exp_bool())  # Nodo para la condición
+        self.match('PC')  # Paréntesis de cierre
         
-        if self.current_token().type == 'LLA':  # Verifica si es un bloque
+        # Bloque o sentencia del if
+        if self.current_token().type == 'LLA':  # Si es un bloque
             node.children.append(self.parse_bloque())
         else:
-            node.children.append(self.parse_sent())  # Si no, es una línea simple
+            node.children.append(self.parse_sent())  # Sentencia simple si no es bloque
         
-        if self.current_token().type == 'ELS':  # Manejar el else si está presente
+        # Verificar si hay un else
+        if self.current_token().type == 'ELS':
             self.match('ELS')
-            if self.current_token().type == 'LLA':
+            if self.current_token().type == 'IF':  # Si el else tiene un if anidado
+                node.children.append(self.parse_sent_if())  # Llamada recursiva a parse_sent_if
+            elif self.current_token().type == 'LLA':  # Si es un bloque
                 node.children.append(self.parse_bloque())
-            else:
+            else:  # Si es una sentencia simple
                 node.children.append(self.parse_sent())
-
+        
         return node
 
-
     def parse_sent_while(self):
+        print("parse_sent_while")
         node = ASTNode('sent-while')
         self.match('WHI')
         self.match('PA')
@@ -156,11 +162,16 @@ class Parser:
         self.match('PC')
         if self.current_token().type == 'LLA': # Verifica si es un bloque
             node.children.append(self.parse_bloque())
+            print("current_token: ", self.current_token().type)
+            if self.current_token().type == 'PYC':
+                self.errors.append(f"Error de sintaxis: No se esperaba un punto y coma después de un bloque while en la línea {self.current_token().line} y columna {self.current_token().column}")
+                raise SyntaxError("No se esperaba un punto y coma después de un bloque")
         else:
             node.children.append(self.parse_sent())  # Si no, es una línea simple
         return node
 
     def parse_sent_do(self):
+        print("parse_sent_do")
         node = ASTNode('sent-do')
         self.match('DO')
         if self.current_token().type == 'LLA': # Verifica si es un bloque
@@ -175,8 +186,17 @@ class Parser:
         self.match('PYC')
         return node
     
+    def parse_sent_read(self):
+        print("parse_sent_read")
+        node = ASTNode('sent-read')
+        self.match('REA')
+        node.children.append(self.parse_list_id())
+        self.match('PYC')
+        return node
+    
     # Solo imprime identificadores
     def parse_sent_write(self):
+        print("parse_sent_write")
         node = ASTNode('sent-write')
         self.match('WRI')
         node.children.append(self.parse_list_id())
@@ -184,6 +204,7 @@ class Parser:
         return node
 
     def parse_bloque(self):
+        print("parse_bloque")
         node = ASTNode('bloque')
         self.match('LLA')
         node.children.append(self.parse_list_sent())
@@ -191,12 +212,14 @@ class Parser:
         return node
     
     def parse_linea(self):
+        print("parse_linea")
         node = ASTNode('linea')
         node.children.append(self.parse_sent())
         self.match('PYC')
         return node
 
     def parse_sent_assign(self):
+        print("parse_sent_assign")
         node = ASTNode('sent-assign')
         node.children.append(ASTNode('id', self.current_token().value))
         self.match('ID')
@@ -206,26 +229,39 @@ class Parser:
         return node
 
     def parse_exp_bool(self):
+        print("parse_exp_bool")
         node = self.parse_comb()
         while self.current_token().type == 'OR':
-            op_node = ASTNode('or', 'or')
             self.advance()
-            op_node.children.append(node)
-            op_node.children.append(self.parse_comb())
-            node = op_node
+            # Validar que hay una expresión después de 'OR'
+            if self.current_token().type in ('PA', 'TRU', 'FAL'):  # Otras posibles expresiones
+                op_node = ASTNode('or', 'or')
+                op_node.children.append(node)
+                op_node.children.append(self.parse_comb())
+                node = op_node
+            else:
+                raise SyntaxError("Se esperaba una expresión después de 'OR' (No implementado)")
         return node
+
 
     def parse_comb(self):
+        print("parse_comb")
         node = self.parse_igualdad()
         while self.current_token().type == 'AND':
-            op_node = ASTNode('and', 'and')
             self.advance()
-            op_node.children.append(node)
-            op_node.children.append(self.parse_igualdad())
-            node = op_node
+            # Validar que hay una expresión después de 'AND'
+            if self.current_token().type in ('PA', 'TRU', 'FAL'):  # Otras posibles expresiones
+                op_node = ASTNode('and', 'and')
+                op_node.children.append(node)
+                op_node.children.append(self.parse_igualdad())
+                node = op_node
+            else:
+                raise SyntaxError("Se esperaba una expresión después de 'AND'. (No implementado)")
         return node
 
+
     def parse_igualdad(self):
+        print("parse_igualdad")
         node = self.parse_rel()
         while self.current_token().type in ('EQL', 'NEQ'):
             op_node = ASTNode('igualdad', self.current_token().value)
@@ -236,6 +272,7 @@ class Parser:
         return node
 
     def parse_rel(self):
+        print("parse_rel")
         node = self.parse_expr()
         if self.current_token().type in ('LEQ', 'GEQ', 'MOR', 'MAR'):
             op_node = ASTNode('rel', self.current_token().value)
@@ -246,6 +283,7 @@ class Parser:
         return node
 
     def parse_expr(self):
+        print("parse_expr")
         node = self.parse_term()
         while self.current_token().type in ('MAS', 'MEN'):
             op_node = ASTNode('expr', self.current_token().value)
@@ -256,6 +294,7 @@ class Parser:
         return node
 
     def parse_term(self):
+        print("parse_term")
         node = self.parse_unario()
         while self.current_token().type in ('MUL', 'DIV'):
             op_node = ASTNode('term', self.current_token().value)
@@ -266,6 +305,7 @@ class Parser:
         return node
 
     def parse_unario(self):
+        print("parse_unario")
         if self.current_token().type in ('NOT', 'MEN'):
             node = ASTNode('unario', self.current_token().value)
             self.advance()
@@ -275,6 +315,7 @@ class Parser:
             return self.parse_factor()
 
     def parse_factor(self):
+        print("parse_factor")
         token = self.current_token()
         if token.type == 'PA':
             self.advance()
@@ -333,8 +374,9 @@ with open('salidas/ast.txt', 'w') as file:
 with open('salidas/errors.txt', 'r') as file:
     errores = file.read()
 if errores.startswith("Error"):
-    print("Hay errores, no se puede crear el AST")
+    print("Hay errores semánticos, no se puede crear el AST")
 else:
+    print("No hay errores semánticos, se creará el AST")
     ast = None
             
     tokens = []
@@ -360,8 +402,7 @@ else:
 
         # Visualización del AST
         graph = visualize_ast(ast)
-
-        graph.render(output_path, format='png', view=True)
+        graph.render(output_path, format='png', view=False)
 
         # Guardar el AST en formato de texto
         ast_text = serialize_ast(ast)

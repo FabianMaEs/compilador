@@ -50,16 +50,39 @@ class IDE():
         
         root.config(menu=menubar)
 
-        # Ventana principal dividida en tres partes
-        # Código
-        # Crea el marco para el código con un color oscuro
-        self.code_frame = ttk.Frame(root, width=400, height=500, relief="solid", borderwidth=1, style="clam.TFrame")
+        # Marco para el código
+        self.code_frame = ttk.Frame(root, width=400, height=800, relief="solid", borderwidth=1, style="clam.TFrame")
         self.code_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-        # Configurar el área de texto para el código con resaltado
-        self.code_text = tk.Text(self.code_frame, wrap="word", undo=True)   # Habilita el deshacer
-        self.code_text.grid(row=0, column=0, sticky="nsew")                       # Expande el widget para llenar el marco
-        self.code_text.pack(fill="both", expand=True)
-        self.code_text.bind('<KeyRelease>', self.highlight_keywords)    # Resalta las palabras clave al escribir
+        
+        # Área para los números de línea
+        self.line_numbers = tk.Text(self.code_frame, width=4, padx=5, takefocus=0, border=0, background='lightgray', state='disabled', wrap="none", font=('Consolas', 14))
+        self.line_numbers.pack(side="left", fill="y")
+        
+        # Área de texto para el código
+        self.code_text = tk.Text(self.code_frame, wrap="word", undo=True)  # Habilita el deshacer
+        self.code_text.pack(side="left", fill="both", expand=True)  # Hacer que el widget Text llene el espacio del marco
+        
+        # Abrir el archivo ejemplos/blanca.txt en el editor
+        try: 
+            with open('ejemplos/blanca.txt', 'r') as file:
+                self.code_text.insert(tk.END, file.read())
+                self.apply_highlight()
+        except:
+            print("Error al abrir el archivo de ejemplo")
+            pass
+                
+        # Tabulación inteligente
+        self.code_text.config(tabs=('1c'))
+        
+        self.code_text.bind('<KeyRelease>', self.highlight_keywords) # Resaltar las palabras clave
+        
+        # Sincronizar el scroll de ambos widgets
+        self.code_text.bind('<MouseWheel>', self.on_mouse_wheel)
+        self.line_numbers.bind('<MouseWheel>', self.on_mouse_wheel)
+        self.code_text.bind('<Configure>', self.update_line_numbers)  # Cuando cambia el tamaño de la ventana
+
+        # Inicializar los números de línea
+        self.update_line_numbers()        
         
         self.font_family = tk.StringVar()
         self.font_size = tk.StringVar()
@@ -94,7 +117,7 @@ class IDE():
         self.analyzer_frame.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
 
         # Salida
-        self.output_frame = ttk.Frame(root, width=400, height=500, relief="solid", borderwidth=1)
+        self.output_frame = ttk.Frame(root, width=200, height=500, relief="solid", borderwidth=1)
         self.output_frame.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
 
         # Configurar el gestor de geometría de la ventana principal
@@ -118,6 +141,9 @@ class IDE():
 
         self.semantic_tab = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.semantic_tab, text="Semántico")
+        
+        self.semantic_not_tab = ttk.Frame(self.analyzer_notebook)
+        self.analyzer_notebook.add(self.semantic_tab, text="Semántico anotaciones")
         
         self.symbol_table = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.symbol_table, text="Tabla de símbolos")
@@ -150,27 +176,17 @@ class IDE():
         self.syntax_text.insert(tk.END, "Información sintáctica...")
         self.syntax_text.config(state=tk.DISABLED)
         
-        # Crear widgets para la pestaña sintáctica gráfica
-        if(os.path.exists('salidas/ast.png')):
-            # Remove previous image
-            for widget in self.syntax_tab_image.winfo_children():
-                widget.destroy()
-            
-            load = Image.open('salidas/ast.png')
-            # Redimensionar la imagen
-            resized_image = load.resize((500, 500))
-            render = ImageTk.PhotoImage(resized_image)
-            img = tk.Label(self.syntax_tab_image, image=render)
-            img.image = render
-            img.pack()
-            # Vincular el evento de clic a la función
-            img.bind("<Button-1>", self.open_full_image)
-        
         # Crear widgets para la pestaña semántica
         self.semantic_text = tk.Text(self.semantic_tab, wrap="word", undo=True)
         self.semantic_text.pack(fill="both", expand=True)
         self.semantic_text.insert(tk.END, "Información semántica...")
         self.semantic_text.config(state=tk.DISABLED)
+        
+        # Crear widgets para la pestaña semántica
+        self.semantic_text2 = tk.Text(self.semantic_not_tab, wrap="word", undo=True)
+        self.semantic_text2.pack(fill="both", expand=True)
+        self.semantic_text2.insert(tk.END, "Información semántica a...")
+        self.semantic_text2.config(state=tk.DISABLED)
         
         # Crear widgets para la pestaña de tabla de símbolos
         self.symbol_table_text = tk.Text(self.symbol_table, wrap="word", undo=True)
@@ -199,6 +215,27 @@ class IDE():
         self.color_scheme.set('dark')
         self.change_color_scheme()
         
+
+    def on_mouse_wheel(self, event):
+        self.code_text.yview_scroll(int(-1*(event.delta/120)), "units")
+        self.line_numbers.yview_scroll(int(-1*(event.delta/120)), "units")
+        return "break"
+
+    # Sincronizar el desplazamiento de ambos widgets
+    def sync_scroll(self, event=None):
+        self.line_numbers.yview_moveto(self.code_text.yview()[0])
+        self.line_numbers.update_idletasks() # Actualizar los números de línea
+        self.update_line_numbers()
+        
+    
+    # Actualizar los números de línea
+    def update_line_numbers(self, event=None):
+        line_numbers_content = "\n".join(str(i) for i in range(1, int(self.code_text.index('end-1c').split('.')[0])))
+        self.line_numbers.config(state='normal')
+        self.line_numbers.delete('1.0', 'end')
+        self.line_numbers.insert('1.0', line_numbers_content)
+        self.line_numbers.config(state='disabled')
+          
     def change_color_scheme(self):
         selected_scheme = self.color_scheme.get()
         if selected_scheme == 'light':
@@ -244,19 +281,22 @@ class IDE():
                 self.highlight_keywords()
 
     def save_file(self):
-        if self.file_path is None or self.file_path == '':
+        # Si no hay un archivo ya abierto, pedir la ubicación para guardar
+        if not self.file_path:  # Comprobar si file_path está vacío o es None
             self.file_path = filedialog.asksaveasfilename(defaultextension=".txt")
-            # Lógica para guardar el archivo
-            if self.file_path:
+
+        # Si se ha seleccionado una ubicación (file_path no está vacío)
+        if self.file_path:
+            try:
                 with open(self.file_path, 'w') as file:
                     file.write(self.code_text.get('1.0', tk.END))
-                messagebox.showinfo("Guardar archivo", "Archivo guardado exitosamente.")
-        else:
-            with open(self.file_path, 'w') as file:
-                file.write(self.code_text.get('1.0', tk.END))
-            messagebox.showinfo("Guardar archivo", "Archivo guardado exitosamente.")
+                # messagebox.showinfo("Guardar archivo", "Archivo guardado exitosamente.")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo guardar el archivo: {e}")
+
 
     def highlight_keywords(self, event=None):
+        self.update_line_numbers()
         self.root.after(10, self.apply_highlight)
 
     def apply_highlight(self):
@@ -332,6 +372,8 @@ class IDE():
         root.bind('<Control-h>', lambda e: self.help_window())
         # Configurar atajo para salir
         root.bind('<Control-q>', lambda e: root.quit())
+        # Configurar atajo para cambiar el tema
+        root.bind('<Control-t>', lambda e: self.change_color_scheme())
 
     def delete_last_word(self, event=None):
         current_line = self.code_text.get("insert linestart", "insert lineend")
@@ -365,6 +407,7 @@ class IDE():
 
     def change_font(self):
         self.code_text.configure(font=(self.font_family.get(), int(self.font_size.get())))
+        self.line_numbers.configure(font=(self.font_family.get(), int(self.font_size.get())))
         
     def help_window(self):
         # Crear una ventana emergente
@@ -374,26 +417,12 @@ class IDE():
         help_window.geometry("400x400")
         help_window.resizable(False, True)
         
+        # Extraer el texto de help.txt permitiendo la codificación UTF-8
+        with open('help.txt', 'r', encoding='utf-8') as file:
+            help_text = file.read()
+        
         # Crear un widget Label para mostrar el texto de ayuda
-        help_text = tk.Label(help_window, text="Este es un IDE simple creado con Python y Tkinter.\n\n"
-                                               "Características:\n"
-                                               "- Resaltado de sintaxis\n"
-                                               "- Compilación de código Java\n"
-                                               "- Análisis léxico y sintáctico\n"
-                                               "- Soporte para temas oscuros y claros\n"
-                                               "- Atajos de teclado\n"
-                                               "- Guardar y abrir archivos\n"
-                                               "- Ayuda y documentación\n\n"
-                                               "Atajos de teclado:\n"
-                                               "- Ctrl + O: Abrir archivo\n"
-                                               "- Ctrl + S: Guardar archivo\n"
-                                               "- Ctrl + Z: Deshacer\n"
-                                               "- Ctrl + Y: Rehacer\n"
-                                               "- Ctrl + R: Compilar código\n"
-                                               "- Ctrl + Q: Salir\n"
-                                               "- Ctrl + Backspace: Eliminar última palabra\n"
-                                               "- Ctrl + Delete: Eliminar siguiente palabra\n"
-                                               "- Ctrl + H: Ayuda\n")
+        help_text = tk.Label(help_window, text=help_text, justify=tk.LEFT, wraplength=400, padx=10, pady=10)
         help_text.pack()
 
     def compile_code(self):
@@ -402,17 +431,8 @@ class IDE():
 
         # Cambiar al directorio donde se encuentran los archivos Java y la clase
         os.chdir(java_dir)
-
-        # Guardar el archivo actual en uno temporal antes de compilar
         
-        if self.file_path is None or self.file_path == '':
-            self.file_path = filedialog.asksaveasfilename(defaultextension=".txt")
-            if self.file_path:
-                with open(self.file_path, 'w') as file:
-                    file.write(self.code_text.get('1.0', tk.END))
-        else:
-            with open(self.file_path, 'w') as file:
-                file.write(self.code_text.get('1.0', tk.END))
+        self.save_file()
         
         
         # Obtener el nombre del archivo actual
@@ -475,14 +495,7 @@ class IDE():
         
         if result.returncode == 0:
             print("Analisis lexico exitoso")
-            # Habilitar el widget Text para la edición
-            self.lexical_text.config(state=tk.NORMAL)
-            # Eliminar todo el texto actual en el widget Text
-            self.lexical_text.delete('1.0', tk.END)
-            # Insertar el nuevo texto en el widget Text
-            self.lexical_text.insert(tk.END, cadena)
-            # Deshabilitar el widget Text después de insertar el nuevo texto
-            self.lexical_text.config(state=tk.DISABLED)
+            self.update_text_widget(self.lexical_text, cadena)
         else:
             print("Error durante la ejecucion (lexico):")
             print(result.stderr.strip())
@@ -503,32 +516,38 @@ class IDE():
             
         # Mostrar salidas/errors.txt en la pestaña de errores
         print("Archivo de errores creado")
-        self.errors_text.config(state=tk.NORMAL)
-        self.errors_text.delete('1.0', tk.END)
-        self.errors_text.insert(tk.END, errores)
-        self.errors_text.config(state=tk.DISABLED)
+        self.update_text_widget(self.errors_text, errores)
         
         if errores.startswith("Error"):
             print("Error durante el análisis sintáctico:")
-            self.syntax_text.config(state=tk.NORMAL)
-            self.syntax_text.delete('1.0', tk.END)
-            self.syntax_text.insert(tk.END, "Error durante el análisis sintáctico. Revise la pestaña de errores.")
-            self.syntax_text.config(state=tk.DISABLED)
+            
+            # Mensaje de error a mostrar
+            error_message = "Error durante el análisis sintáctico. Revise la pestaña de errores."
+
+            # Aplicar la función a cada widget
+            self.update_text_widget(self.syntax_text, error_message)
+            self.update_text_widget(self.semantic_text, error_message)
+            self.update_text_widget(self.semantic_text2, error_message)
+            self.update_text_widget(self.symbol_table_text, error_message)
+            self.update_text_widget(self.intermediate_text, error_message)
+            
+            if(os.path.exists('salidas/ast.png')):
+                # Remove previous image
+                for widget in self.syntax_tab_image.winfo_children():
+                    widget.destroy()
         else:
             try:
                 # Mostrar ast.txt en la pestaña sintáctico
                 with open('salidas/ast.txt', 'r') as file:
                     analisis_sintactico = file.read()
-                self.syntax_text.config(state=tk.NORMAL)
-                self.syntax_text.delete('1.0', tk.END)
-                self.syntax_text.insert(tk.END, analisis_sintactico)
-                self.syntax_text.config(state=tk.DISABLED)
+                self.update_text_widget(self.syntax_text, analisis_sintactico)
                 
                 if(os.path.exists('salidas/ast.png')):
                     # Remove previous image
                     for widget in self.syntax_tab_image.winfo_children():
                         widget.destroy()
                     print("Analisis sintactico grafico exitoso")
+                
                     load = Image.open('salidas/ast.png')
                     # Redimensionar la imagen
                     resized_image = load.resize((500, 500))
@@ -537,14 +556,48 @@ class IDE():
                     img.image = render
                     img.pack()
                     # Vincular el evento de clic a la función
-                    img.bind("<Button-1>", self.open_full_image) 
+                    img.bind("<Button-1>", self.open_full_image)
+                    
+                    # Ejecutar el sintactico.py
+                    print("Ejecutando TablaSimbolos.py")
+                    try:
+                        result = subprocess.run(['python', 'TablaSimbolos.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                        print("Ejecutando analisis sintactico con anotaciones...")
+                    except subprocess.CalledProcessError as e:
+                        print("Error durante la ejecucion (sintacticoAn):")
+                        print(e)
+                        return
+
+                    with open('salidas/tabla_simbolos.txt', 'r') as file:
+                        tabla_simbolos = file.read()
+                    self.update_text_widget(self.symbol_table_text, tabla_simbolos)
+                    
+                    # Ejecutar el SintacticoAnotaciones.py
+                    print("Ejecutando SintacticoAnotaciones.py")
+                    try:
+                        result = subprocess.run(['python', 'SintacticoAnotaciones.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                        print("Ejecutando analisis sintactico con anotaciones...")
+                    except subprocess.CalledProcessError as e:
+                        print("Error durante la ejecucion (sintacticoAn):")
+                        print(e)
+                        return
+                    
+                    with open('salidas/arbol_anotado.txt', 'r') as file:
+                        analisis_sintactico = file.read()
+                    self.update_text_widget(self.semantic_text2, analisis_sintactico)
+                
             except:
                 print("Error durante la ejecucion (arbol):")
                 print(result.stderr.strip())
-            
-            # Mostrar la imagen ast.png en la pestaña sintáctico gráfico
+                
+    def update_text_widget(self, widget, message):
+        widget.config(state=tk.NORMAL)
+        widget.delete('1.0', tk.END)
+        widget.insert(tk.END, message)
+        widget.config(state=tk.DISABLED)
     
     def open_full_image(self, event=None):
+        print("Abriendo imagen...")
         # Mostrar la imagen con controles de desplazamiento
         top = tk.Toplevel()
         top.title("Árbol sintactico")

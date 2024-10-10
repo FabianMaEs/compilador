@@ -5,16 +5,169 @@ program
       list-id
         id (x)
         id (y)
+        id (z)
     decl
       tipo (float)
       list-id
-        id (z)
+        id (x)
+        id (a)
+        id (b)
+        id (c)
+        id (y)
   list-sent
     sent-assign
+      id (suma)
+      factor (45)
+    sent-assign
       id (x)
-      factor (0)
+      factor (32.32)
+    sent-assign
+      id (x)
+      factor (23)
+    sent-assign
+      id (y)
+      expr (-)
+        expr (+)
+          factor (2)
+          factor (3)
+        factor (1)
+    sent-assign
+      id (z)
+      expr (+)
+        factor (y)
+        factor (7)
     sent-assign
       id (y)
       expr (+)
-        factor (23)
+        factor (y)
+        factor (1)
+    sent-assign
+      id (a)
+      expr (-)
+        expr (+)
+          expr (-)
+            expr (+)
+              factor (24.0)
+              factor (4)
+            term (*)
+              term (/)
+                factor (1)
+                factor (3)
+              factor (2)
+          factor (34)
+        factor (1)
+    sent-assign
+      id (x)
+      term (*)
+        expr (-)
+          factor (5)
+          factor (3)
+        term (/)
+          factor (8)
+          factor (2)
+    sent-assign
+      id (y)
+      expr (-)
+        expr (-)
+          expr (+)
+            factor (5)
+            factor (3)
+          term (/)
+            term (*)
+              factor (2)
+              factor (4)
+            factor (7)
+        factor (9)
+    sent-assign
+      id (z)
+      expr (+)
+        term (/)
+          factor (8)
+          factor (2)
+        term (*)
+          factor (15)
+          factor (4)
+    sent-assign
+      id (y)
+      factor (14.54)
+    sent-if
+      rel (>)
+        factor (2)
         factor (3)
+      sent-assign
+        id (y)
+        expr (+)
+          factor (a)
+          factor (3)
+      sent-if
+        rel (>)
+          factor (4)
+          factor (2)
+        sent-assign
+          id (b)
+          factor (3.2)
+        sent-assign
+          id (b)
+          factor (5.0)
+    sent-assign
+      id (y)
+      expr (+)
+        factor (y)
+        factor (1)
+    sent-assign
+      id (x)
+      expr (+)
+        factor (3)
+        factor (4)
+    sent-do
+      bloque
+        list-sent
+          sent-assign
+            id (y)
+            expr (+)
+              term (*)
+                expr (+)
+                  factor (y)
+                  factor (1)
+                factor (2)
+              factor (1)
+          sent-while
+            rel (>)
+              factor (x)
+              factor (7)
+            bloque
+              list-sent
+                sent-assign
+                  id (x)
+                  expr (+)
+                    factor (6)
+                    term (/)
+                      term (*)
+                        term (/)
+                          factor (8)
+                          factor (9)
+                        factor (8)
+                      factor (3)
+                sent-read
+                  list-id
+                    id (x)
+                sent-assign
+                  id (mas)
+                  term (/)
+                    factor (36)
+                    factor (7)
+      igualdad (==)
+        factor (y)
+        factor (5)
+    sent-while
+      igualdad (==)
+        factor (y)
+        factor (0)
+      bloque
+        list-sent
+          sent-read
+            list-id
+              id (mas)
+          sent-write
+            list-id
+              id (x)

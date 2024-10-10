@@ -92,12 +92,11 @@ def main():
             token_type = tokens[0]
             value = tokens[1]
             lineno = int(tokens[2])
-            colno = int(tokens[3])
 
             if token_type == "ID":  # Si el token es una variable
                 loc += 1  # Incrementa el número de registro
-                var_type = "int"  # Puedes personalizar esto según el contexto
-                symbol_table.insert(value, lineno, loc, var_type, "")
+                var_type = token_type
+                symbol_table.insert(value, lineno, loc, var_type, "-8")
             elif token_type == "=":  # Si el token es una asignación
                 # La variable que se está asignando está en el valor anterior
                 variable = tokens[1]

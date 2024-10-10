@@ -1,0 +1,20 @@
+Este es un IDE simple creado con Python y Tkinter.
+Características:
+    - Resaltado de sintaxis
+    - Compilación de código Java
+    - Análisis léxico y sintáctico
+    - Soporte para temas oscuros y claros
+    - Atajos de teclado
+    - Guardar y abrir archivos
+    - Ayuda y documentación
+    
+    Atajos de teclado:
+    - Ctrl + O: Abrir archivo
+    - Ctrl + S: Guardar archivo
+    - Ctrl + Z: Deshacer
+    - Ctrl + Y: Rehacer
+    - Ctrl + R: Compilar código
+    - Ctrl + Q: Salir
+    - Ctrl + Backspace: Eliminar última palabra
+    - Ctrl + Delete: Eliminar siguiente palabra
+    - Ctrl + H: Ayuda
