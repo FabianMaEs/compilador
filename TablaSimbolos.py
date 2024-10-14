@@ -1,3 +1,6 @@
+import subprocess
+
+
 class LineList:
     def __init__(self, lineno):
         self.lineno = lineno
@@ -62,7 +65,7 @@ class SymbolTable:
             while line is not None:
                 line_numbers.append(line.lineno)
                 line = line.next
-            print(f"{bucket.name:<14} {bucket.var_type:<8} {bucket.memloc:<9} {bucket.value:<8} {', '.join(map(str, line_numbers))}")
+            print(f"{bucket.name:<14} {bucket.var_type.lower():<8} {bucket.memloc:<9} {bucket.value:<8} {', '.join(map(str, line_numbers))}")
     
     def save_table(self):
         with open("salidas/tabla_simbolos.txt", "w") as file:
@@ -82,8 +85,16 @@ class SymbolTable:
 
 
 def main():
+    no_declared = []
     symbol_table = SymbolTable()
     loc = 0
+    
+    # Imprime la tabla de símbolos quitando las variables que no han sido declaradas
+    with open('salidas/errors.txt', 'r') as file:
+        for line in file:
+            if(line.startswith("Variable no declarada")):
+                var = line.split("'")[1]
+                no_declared.append(var)
 
     # Lee los tokens desde el archivo
     with open("salidas/output.txt", "r") as file:
@@ -92,19 +103,33 @@ def main():
             token_type = tokens[0]
             value = tokens[1]
             lineno = int(tokens[2])
-
-            if token_type == "ID":  # Si el token es una variable
+            
+            if token_type in("INT", "FLO", "BOO"):  # Si el token es un tipo de dato
+                if token_type == "INT":
+                    var_type = "int"
+                elif token_type == "FLO":
+                    var_type = "float"
+                elif token_type == "BOO":
+                    var_type = "bool"
+            if token_type == "ID" and value not in no_declared:  # Si el token es una variable
                 loc += 1  # Incrementa el número de registro
-                var_type = token_type
-                symbol_table.insert(value, lineno, loc, var_type, "-8")
+                symbol_table.insert(value, lineno, loc, var_type, "0")
             elif token_type == "=":  # Si el token es una asignación
                 # La variable que se está asignando está en el valor anterior
                 variable = tokens[1]
                 symbol_table.insert(variable, lineno, loc, var_type, value)
-
-    # Imprime la tabla de símbolos
+    
     symbol_table.print_table()
     symbol_table.save_table()
 
 if __name__ == "__main__":
-    main()
+    try:
+        result = subprocess.run(['python', 'ts2.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        main()
+    except subprocess.CalledProcessError as e:
+        print("Error durante la ejecucion (tabla de simbolos):")
+        print(e)
+        print("No se pudo crear la tabla de simbolos")
+    
+    
+    

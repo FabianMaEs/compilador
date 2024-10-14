@@ -128,7 +128,7 @@ class Parser:
             raise SyntaxError(f"Token inesperado {token.type}")
 
     def parse_sent_if(self):
-        print("parse_sent_if")
+        
         node = ASTNode('sent-if')  # Nodo principal para el if
         self.match('IF')
         self.match('PA')  # Paréntesis de apertura para la condición
@@ -154,7 +154,7 @@ class Parser:
         return node
 
     def parse_sent_while(self):
-        print("parse_sent_while")
+        
         node = ASTNode('sent-while')
         self.match('WHI')
         self.match('PA')
@@ -171,7 +171,7 @@ class Parser:
         return node
 
     def parse_sent_do(self):
-        print("parse_sent_do")
+        
         node = ASTNode('sent-do')
         self.match('DO')
         if self.current_token().type == 'LLA': # Verifica si es un bloque
@@ -187,7 +187,7 @@ class Parser:
         return node
     
     def parse_sent_read(self):
-        print("parse_sent_read")
+        
         node = ASTNode('sent-read')
         self.match('REA')
         node.children.append(self.parse_list_id())
@@ -196,7 +196,7 @@ class Parser:
     
     # Solo imprime identificadores
     def parse_sent_write(self):
-        print("parse_sent_write")
+        
         node = ASTNode('sent-write')
         self.match('WRI')
         node.children.append(self.parse_list_id())
@@ -204,7 +204,7 @@ class Parser:
         return node
 
     def parse_bloque(self):
-        print("parse_bloque")
+        
         node = ASTNode('bloque')
         self.match('LLA')
         node.children.append(self.parse_list_sent())
@@ -212,14 +212,14 @@ class Parser:
         return node
     
     def parse_linea(self):
-        print("parse_linea")
+        
         node = ASTNode('linea')
         node.children.append(self.parse_sent())
         self.match('PYC')
         return node
 
     def parse_sent_assign(self):
-        print("parse_sent_assign")
+        
         node = ASTNode('sent-assign')
         node.children.append(ASTNode('id', self.current_token().value))
         self.match('ID')
@@ -229,7 +229,7 @@ class Parser:
         return node
 
     def parse_exp_bool(self):
-        print("parse_exp_bool")
+        
         node = self.parse_comb()
         while self.current_token().type == 'OR':
             self.advance()
@@ -245,7 +245,7 @@ class Parser:
 
 
     def parse_comb(self):
-        print("parse_comb")
+        
         node = self.parse_igualdad()
         while self.current_token().type == 'AND':
             self.advance()
@@ -261,7 +261,7 @@ class Parser:
 
 
     def parse_igualdad(self):
-        print("parse_igualdad")
+        
         node = self.parse_rel()
         while self.current_token().type in ('EQL', 'NEQ'):
             op_node = ASTNode('igualdad', self.current_token().value)
@@ -272,7 +272,7 @@ class Parser:
         return node
 
     def parse_rel(self):
-        print("parse_rel")
+        
         node = self.parse_expr()
         if self.current_token().type in ('LEQ', 'GEQ', 'MOR', 'MAR'):
             op_node = ASTNode('rel', self.current_token().value)
@@ -283,7 +283,7 @@ class Parser:
         return node
 
     def parse_expr(self):
-        print("parse_expr")
+        
         node = self.parse_term()
         while self.current_token().type in ('MAS', 'MEN'):
             op_node = ASTNode('expr', self.current_token().value)
@@ -294,7 +294,7 @@ class Parser:
         return node
 
     def parse_term(self):
-        print("parse_term")
+        
         node = self.parse_unario()
         while self.current_token().type in ('MUL', 'DIV'):
             op_node = ASTNode('term', self.current_token().value)
@@ -305,7 +305,7 @@ class Parser:
         return node
 
     def parse_unario(self):
-        print("parse_unario")
+        
         if self.current_token().type in ('NOT', 'MEN'):
             node = ASTNode('unario', self.current_token().value)
             self.advance()
@@ -315,7 +315,7 @@ class Parser:
             return self.parse_factor()
 
     def parse_factor(self):
-        print("parse_factor")
+        
         token = self.current_token()
         if token.type == 'PA':
             self.advance()
@@ -353,7 +353,7 @@ def visualize_ast(node, graph=None, parent=None):
 # Función para serializar el AST en un formato de texto
 def serialize_ast(node, level=0):
     lines = []
-    indent = '  ' * level
+    indent = '>' * level
     label = f"{node.type}"
     if node.value is not None:
         label += f" ({node.value})"
@@ -373,10 +373,10 @@ with open('salidas/ast.txt', 'w') as file:
 # Verificar si el archivo errors.txt existe y comienza con "Error"
 with open('salidas/errors.txt', 'r') as file:
     errores = file.read()
-if errores.startswith("Error"):
-    print("Hay errores semánticos, no se puede crear el AST")
+if errores.startswith("Error") or errores.startswith("Variable no declarada"):
+    print("Hay errores sintacticos, no se puede crear el AST")
 else:
-    print("No hay errores semánticos, se creará el AST")
+    print("No hay errores sintacticos, se creará el AST")
     ast = None
             
     tokens = []

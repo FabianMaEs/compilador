@@ -1,86 +1,91 @@
 import tkinter as tk
 from tkinter import ttk
 
-# Definimos una clase para los nodos del árbol
-class NodoAST:
-    def __init__(self, valor, tipo=None):
-        self.valor = valor      # El valor puede ser un número, variable o un operador
-        self.tipo = tipo        # Puede ser 'int', 'float', etc.
-        self.hijos = []         # Lista de hijos del nodo (si es un operador tendrá operandos)
+class TreeViewExample(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("TreeView Example")
+        self.geometry("400x400")
 
-    def agregar_hijo(self, hijo):
-        self.hijos.append(hijo)
+        self.semantic_tab = ttk.Frame(self)
+        self.semantic_tab.pack(fill="both", expand=True)
 
-# Función para evaluar el árbol y anotar los valores intermedios
-def evaluar_arbol(nodo):
-    if len(nodo.hijos) == 0:
-        # Si es una hoja (un número o variable), solo devolvemos su valor
-        return float(nodo.valor)
+        # Crear un Treeview
+        self.tree = ttk.Treeview(self.semantic_tab)
+        self.tree.pack(fill="both", expand=True)
 
-    # Evaluamos los hijos (operandos)
-    operando_izq = evaluar_arbol(nodo.hijos[0])
-    operando_der = evaluar_arbol(nodo.hijos[1])
+        # Agregar una barra de desplazamiento
+        scrollbar = ttk.Scrollbar(self.semantic_tab, orient="vertical", command=self.tree.yview)
+        scrollbar.pack(side="right", fill="y")
+        self.tree.configure(yscrollcommand=scrollbar.set)
 
-    # Dependiendo del operador, evaluamos la operación
-    if nodo.valor == '+':
-        resultado = operando_izq + operando_der
-    elif nodo.valor == '-':
-        resultado = operando_izq - operando_der
-    elif nodo.valor == '*':
-        resultado = operando_izq * operando_der
-    elif nodo.valor == '/':
-        resultado = operando_izq / operando_der
-    elif nodo.valor == '%':
-        resultado = operando_izq % operando_der
-    elif nodo.valor == '^':
-        resultado = operando_izq ** operando_der
+        # Cargar el árbol
+        self.load_tree()
 
-    # Anotamos el valor resultante en el nodo
-    nodo.tipo = 'float' if isinstance(resultado, float) else 'int'
-    nodo.valor = resultado
-    return resultado
+    def load_tree(self):
+        # Datos del árbol (puedes reemplazar esto con la lectura del archivo)
+        data = """
+program
+>list-decl
+>>decl
+>>>tipo (float)
+>>>list-id
+>>>>a (float: 0.0)
+>>>>x (float: 0.0)
+>>>>c (float: 0.0)
+>>decl
+>>>tipo (int)
+>>>list-id
+>>>>c (float: 0.0)
+>>decl
+>>>tipo (bool)
+>>>list-id
+>>>>d (bool: False)
+>list-sent
+>>sent-assign
+>>>a (float: 60.33333333333333)
+>>>expr (-: 60.33333333333333)
+>>>>expr (+: 61.33333333333333)
+>>>>>expr (-: 27.333333333333332)
+>>>>>>expr (+: 28)
+>>>>>>>factor (int: 24)
+>>>>>>>factor (int: 4)
+>>>>>>term (*: 0.6666666666666666)
+>>>>>>>term (/: 0.3333333333333333)
+>>>>>>>>factor (int: 1)
+>>>>>>>>factor (int: 3)
+>>>>>>>factor (int: 2)
+>>>>>factor (int: 34)
+>>>>factor (int: 1)
+>>sent-assign
+>>>x (float: 8.0)
+>>>term (*: 8.0)
+>>>>expr (-: 2)
+>>>>>factor (int: 5)
+>>>>>factor (int: 3)
+>>>>term (/: 4.0)
+>>>>>factor (int: 8)
+>>>>>factor (int: 2)
+        """
+        
+        # Procesar los datos y agregar al Treeview
+        self.add_tree_nodes(data.strip().splitlines())
 
-# Función para crear un árbol de ejemplo (AST)
-def crear_ast():
-    # Construimos el árbol sintáctico de la expresión: (3 + 5) * 2
-    nodo_mas = NodoAST('+')
-    nodo_mas.agregar_hijo(NodoAST('3'))
-    nodo_mas.agregar_hijo(NodoAST('5'))
+    def add_tree_nodes(self, lines):
+        # Crear un diccionario para almacenar los nodos y su ID
+        node_ids = {}
 
-    nodo_mult = NodoAST('*')
-    nodo_mult.agregar_hijo(nodo_mas)
-    nodo_mult.agregar_hijo(NodoAST('2'))
+        for line in lines:
+            level = line.count('>')
+            node_name = line.strip().replace('>', '').strip()
+            # Agregar el nodo a la Treeview
+            if level == 0:
+                node_id = self.tree.insert("", "end", text=node_name)
+            else:
+                parent_id = node_ids[level - 1]
+                node_id = self.tree.insert(parent_id, "end", text=node_name)
+            node_ids[level] = node_id
 
-    return nodo_mult
-
-# Función recursiva para construir el árbol en la interfaz
-def mostrar_arbol(nodo, padre, tree):
-    nodo_id = tree.insert(padre, 'end', text=f'{nodo.valor} [{nodo.tipo}]')
-    for hijo in nodo.hijos:
-        mostrar_arbol(hijo, nodo_id, tree)
-
-# Configuración de la interfaz gráfica con tkinter
-def mostrar_arbol_interactivo(arbol):
-    root = tk.Tk()
-    root.title("Árbol con Anotaciones - Expansión y Colapsado")
-    root.geometry("400x400")
-
-    # Definir un árbol de interfaz (tkinter Treeview)
-    tree = ttk.Treeview(root)
-    tree.pack(fill=tk.BOTH, expand=True)
-
-    # Llamamos a la función recursiva para mostrar el árbol
-    mostrar_arbol(arbol, '', tree)
-
-    # Botón para salir
-    boton_salir = tk.Button(root, text="Cerrar", command=root.quit)
-    boton_salir.pack(pady=10)
-
-    root.mainloop()
-
-# Crear el AST y evaluarlo
-arbol = crear_ast()
-evaluar_arbol(arbol)
-
-# Mostrar el árbol en la interfaz
-mostrar_arbol_interactivo(arbol)
+if __name__ == "__main__":
+    app = TreeViewExample()
+    app.mainloop()

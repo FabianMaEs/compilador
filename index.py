@@ -1,4 +1,3 @@
-import keyword
 import os
 import tkinter as tk
 from tkinter import ttk
@@ -139,11 +138,21 @@ class IDE():
         self.syntax_tab_image = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.syntax_tab_image, text="Sintáctico gráfico")
 
-        self.semantic_tab = ttk.Frame(self.analyzer_notebook)
-        self.analyzer_notebook.add(self.semantic_tab, text="Semántico")
+        # self.semantic_tab = ttk.Frame(self.analyzer_notebook)
+        # self.analyzer_notebook.add(self.semantic_tab, text="Semántico")
         
-        self.semantic_not_tab = ttk.Frame(self.analyzer_notebook)
+        # Crear la pestaña semántica
+        self.semantic_tab = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.semantic_tab, text="Semántico anotaciones")
+        
+        # Crear un Treeview
+        self.tree = ttk.Treeview(self.semantic_tab)
+        self.tree.pack(fill="both", expand=True)
+
+        # Agregar una barra de desplazamiento
+        scrollbar = ttk.Scrollbar(self.semantic_tab, orient="vertical", command=self.tree.yview)
+        scrollbar.pack(side="right", fill="y")
+        self.tree.configure(yscrollcommand=scrollbar.set)
         
         self.symbol_table = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.symbol_table, text="Tabla de símbolos")
@@ -181,12 +190,6 @@ class IDE():
         self.semantic_text.pack(fill="both", expand=True)
         self.semantic_text.insert(tk.END, "Información semántica...")
         self.semantic_text.config(state=tk.DISABLED)
-        
-        # Crear widgets para la pestaña semántica
-        self.semantic_text2 = tk.Text(self.semantic_not_tab, wrap="word", undo=True)
-        self.semantic_text2.pack(fill="both", expand=True)
-        self.semantic_text2.insert(tk.END, "Información semántica a...")
-        self.semantic_text2.config(state=tk.DISABLED)
         
         # Crear widgets para la pestaña de tabla de símbolos
         self.symbol_table_text = tk.Text(self.symbol_table, wrap="word", undo=True)
@@ -428,22 +431,19 @@ class IDE():
     def compile_code(self):
         # Directorio donde se encuentran los archivos Java y la clase
         java_dir = os.path.dirname(os.path.abspath(__file__))
-
-        # Cambiar al directorio donde se encuentran los archivos Java y la clase
-        os.chdir(java_dir)
         
+        # Cambiar al directorio de trabajo
+        os.chdir(java_dir)
+
+        # Guardar el archivo actual
         self.save_file()
         
-        
-        # Obtener el nombre del archivo actual
-        #file_path = filedialog.asksaveasfilename(defaultextension=".java")
         print("Archivo: " + self.file_path)
-        
-        # Verificar si el archivo compilado existe
+
+        # Verificar y compilar el archivo Lexer.java
         if not os.path.exists(os.path.join(java_dir, 'Lexer.class')):
             print("Compilando código...")
             try:
-                # Compilar el código Java
                 subprocess.run(['javac', 'Lexer.java'], check=True)
             except subprocess.CalledProcessError as e:
                 print("Error durante la compilación:")
@@ -451,144 +451,161 @@ class IDE():
                 return
 
         # Leer el contenido del archivo de entrada
-        input_file = self.file_path
-        with open(input_file, 'r') as file:
+        print("Leyendo archivo...")
+        with open(self.file_path, 'r') as file:
             code = file.read()
 
-        print("Leyendo archivo...")
-        
-        # Ejecutar el archivo compilado con el nombre del archivo de entrada como argumento
+        # Ejecutar el análisis léxico
+        print("Ejecutando análisis léxico...")
         try:
-            result = subprocess.run(['java', 'Lexer', input_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            print("Ejecutando analisis lexico...")
+            result = subprocess.run(['java', 'Lexer', self.file_path], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         except subprocess.CalledProcessError as e:
-            print("Error durante la ejecucion (lexico):")
+            print("Error durante la ejecución (léxico):")
             print(e)
             return
-        
-        java_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # Verificar si el directorio 'salidas' existe, y si no, crearlo
+
+        # Crear directorio de salida si no existe
         output_dir = os.path.join(java_dir, 'salidas')
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-        
-        # Dejar el archivo, pero borra el contenido
-        with open('salidas/output.txt', 'w') as file:
-            file.write("")
-        
-        with open('salidas/errors.txt', 'w') as file:
-            file.write("")
-        
-        with open('salidas/ast.txt', 'w') as file:
-            file.write("")
-        
-        # Mostrar la salida del programa
-        # print(result.stdout.strip())
-        
-        # Guardar en un archivo de texto
+        os.makedirs(output_dir, exist_ok=True)
+
+        # Limpiar archivos de salida
+        for filename in ['output.txt', 'errors.txt', 'ast.txt']:
+            with open(os.path.join(output_dir, filename), 'w') as file:
+                file.write("")
+
+        # Guardar la salida del análisis léxico
         output_file = os.path.join(output_dir, 'output.txt')
         with open(output_file, 'w') as file:
             file.write(result.stdout.strip())
         
         cadena = result.stdout.strip()
         
+        # Verificar si el análisis léxico fue exitoso
         if result.returncode == 0:
-            print("Analisis lexico exitoso")
+            print("Análisis léxico exitoso")
             self.update_text_widget(self.lexical_text, cadena)
         else:
-            print("Error durante la ejecucion (lexico):")
+            print("Error durante la ejecución (léxico):")
             print(result.stderr.strip())
-            
-        # Ejecutar el sintactico.py
+
+        # Ejecutar el análisis sintáctico
         print("Ejecutando Sintactico.py")
         try:
             result = subprocess.run(['python', 'Sintactico.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-            print("Ejecutando analisis sintactico...")
+            print("Ejecutando análisis sintáctico...")
         except subprocess.CalledProcessError as e:
-            print("Error durante la ejecucion (sintactico):")
+            print("Error durante la ejecución (sintáctico):")
             print(e)
             return
 
-        # Verificar si el archivo errors.txt existe y comienza con "Error"
+        # Leer errores del análisis sintáctico
         with open('salidas/errors.txt', 'r') as file:
             errores = file.read()
-            
-        # Mostrar salidas/errors.txt en la pestaña de errores
+
+        # Mostrar errores en la pestaña correspondiente
         print("Archivo de errores creado")
         self.update_text_widget(self.errors_text, errores)
         
-        if errores.startswith("Error"):
+        if errores.startswith("Error") or errores.startswith("Variable no declarada"):
             print("Error durante el análisis sintáctico:")
-            
-            # Mensaje de error a mostrar
-            error_message = "Error durante el análisis sintáctico. Revise la pestaña de errores."
-
-            # Aplicar la función a cada widget
-            self.update_text_widget(self.syntax_text, error_message)
-            self.update_text_widget(self.semantic_text, error_message)
-            self.update_text_widget(self.semantic_text2, error_message)
-            self.update_text_widget(self.symbol_table_text, error_message)
-            self.update_text_widget(self.intermediate_text, error_message)
-            
-            if(os.path.exists('salidas/ast.png')):
-                # Remove previous image
-                for widget in self.syntax_tab_image.winfo_children():
-                    widget.destroy()
+            self.verificarError()
+            self.clear_syntax_image()
         else:
-            try:
-                # Mostrar ast.txt en la pestaña sintáctico
-                with open('salidas/ast.txt', 'r') as file:
-                    analisis_sintactico = file.read()
-                self.update_text_widget(self.syntax_text, analisis_sintactico)
-                
-                if(os.path.exists('salidas/ast.png')):
-                    # Remove previous image
-                    for widget in self.syntax_tab_image.winfo_children():
-                        widget.destroy()
-                    print("Analisis sintactico grafico exitoso")
-                
-                    load = Image.open('salidas/ast.png')
-                    # Redimensionar la imagen
-                    resized_image = load.resize((500, 500))
-                    render = ImageTk.PhotoImage(resized_image)
-                    img = tk.Label(self.syntax_tab_image, image=render)
-                    img.image = render
-                    img.pack()
-                    # Vincular el evento de clic a la función
-                    img.bind("<Button-1>", self.open_full_image)
-                    
-                    # Ejecutar el sintactico.py
-                    print("Ejecutando TablaSimbolos.py")
-                    try:
-                        result = subprocess.run(['python', 'TablaSimbolos.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                        print("Ejecutando analisis sintactico con anotaciones...")
-                    except subprocess.CalledProcessError as e:
-                        print("Error durante la ejecucion (sintacticoAn):")
-                        print(e)
-                        return
+            # Mostrar análisis sintáctico y gráfico
+            self.display_syntax_analysis()
 
-                    with open('salidas/tabla_simbolos.txt', 'r') as file:
-                        tabla_simbolos = file.read()
-                    self.update_text_widget(self.symbol_table_text, tabla_simbolos)
-                    
-                    # Ejecutar el SintacticoAnotaciones.py
-                    print("Ejecutando SintacticoAnotaciones.py")
-                    try:
-                        result = subprocess.run(['python', 'SintacticoAnotaciones.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-                        print("Ejecutando analisis sintactico con anotaciones...")
-                    except subprocess.CalledProcessError as e:
-                        print("Error durante la ejecucion (sintacticoAn):")
-                        print(e)
-                        return
-                    
-                    with open('salidas/arbol_anotado.txt', 'r') as file:
-                        analisis_sintactico = file.read()
-                    self.update_text_widget(self.semantic_text2, analisis_sintactico)
-                
-            except:
-                print("Error durante la ejecucion (arbol):")
-                print(result.stderr.strip())
+            # Ejecutar TablaSimbolos.py
+            print("Ejecutando TablaSimbolos.py")
+            self.run_table_symbols_analysis()
+
+            # Ejecutar SemanticoAnotaciones.py
+            print("Ejecutando SemanticoAnotaciones.py")
+            self.run_semantic_annotations_analysis()
+
+
+    def clear_syntax_image(self):
+        """Eliminar la imagen del análisis sintáctico si existe."""
+        if os.path.exists('salidas/ast.png'):
+            for widget in self.syntax_tab_image.winfo_children():
+                widget.destroy()
+
+
+    def display_syntax_analysis(self):
+        """Mostrar el análisis sintáctico y su representación gráfica."""
+        with open('salidas/ast.txt', 'r') as file:
+            analisis_sintactico = file.read()
+        self.update_text_widget(self.syntax_text, analisis_sintactico)
+
+        if os.path.exists('salidas/ast.png'):
+            self.clear_syntax_image()
+            print("Análisis sintáctico gráfico exitoso")
+            load = Image.open('salidas/ast.png')
+            resized_image = load.resize((500, 500))
+            render = ImageTk.PhotoImage(resized_image)
+            img = tk.Label(self.syntax_tab_image, image=render)
+            img.image = render
+            img.pack()
+            img.bind("<Button-1>", self.open_full_image)
+
+
+    def run_table_symbols_analysis(self):
+        """Ejecutar el análisis de la tabla de símbolos."""
+        try:
+            result = subprocess.run(['python', 'TablaSimbolos.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            print("Ejecutando análisis de la tabla de símbolos...")
+            self.update_symbol_table(result)
+        except subprocess.CalledProcessError as e:
+            print("Error durante la ejecución (tabla de símbolos):")
+            print(e)
+
+
+    def update_symbol_table(self, result):
+        """Actualizar el widget de la tabla de símbolos con el resultado de la ejecución."""
+        with open('salidas/tabla_simbolos.txt', 'r') as file:
+            tabla_simbolos = file.read()
+        self.update_text_widget(self.symbol_table_text, tabla_simbolos)
+
+        if result.returncode != 0:
+            print("Error durante la tabla de símbolos:")
+            self.verificarError()
+
+
+    def run_semantic_annotations_analysis(self):
+        """Ejecutar el análisis semántico con anotaciones."""
+        try:
+            subprocess.run(['python', 'SemanticoAnotaciones.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            print("Ejecutando análisis semántico con anotaciones...")
+            self.update_semantic_analysis()
+        except subprocess.CalledProcessError as e:
+            print("Error durante la ejecución (semántico):")
+            print(e)
+
+    def update_semantic_analysis(self):
+        """Actualizar el widget semántico con el resultado de la ejecución."""
+        with open('salidas/errors.txt', 'r') as file:
+            errores = file.read()
+        if errores.startswith("Error") or errores.startswith("Variable no declarada"):
+            print("Error durante el análisis semántico:")
+            self.verificarError()
+        else:
+            with open('salidas/ast_anotado.txt', 'r') as file:
+                analisis_semantico = file.read()
+            self.add_tree_nodes(analisis_semantico.strip().splitlines())
+
+    
+    def verificarError(self):
+        # Mensaje de error a mostrar
+        error_message = "Error durante el análisis sintáctico. Revise la pestaña de errores."
+
+        # Aplicar la función a cada widget
+        self.update_text_widget(self.syntax_text, error_message)
+        self.update_text_widget(self.semantic_text, error_message)
+        self.update_text_widget(self.semantic_text2, error_message)
+        self.update_text_widget(self.symbol_table_text, error_message)
+        self.update_text_widget(self.intermediate_text, error_message)
+        self.update_text_widget(self.errors_text, open('salidas/errors.txt', 'r').read())
+        for widget in self.syntax_tab_image.winfo_children():
+            widget.destroy()
                 
     def update_text_widget(self, widget, message):
         widget.config(state=tk.NORMAL)
