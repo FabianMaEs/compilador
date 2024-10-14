@@ -1,3 +1,7 @@
+import subprocess
+import sys
+
+
 class Node:
     def __init__(self, nombre, tipo=None, valor=None):
         self.nombre = nombre
@@ -250,36 +254,63 @@ def update_variable_in_file(nombre, nuevo_valor):
 with open('salidas/ast.txt', 'r') as file:
     lines = file.readlines()
 
-# Parsear el árbol AST
-root = parse_ast(lines)
+# Ejecutar TablaSimbolos.py
+try:
+    print("Ejecutando TablaSimbolos.py...")
+    subprocess.run(["python", "TablaSimbolos.py"], check=True)
+except subprocess.CalledProcessError as e:
+    print("Error al ejecutar TablaSimbolos.py")
+    print(e.stderr)
+    sys.exit(1)
 
-# Extraer variables
-variables = extract_variables()
-print("Variables:", variables)
-no_declared = []
-with open('salidas/errors.txt', 'r') as file:
-    for line in file:
-        if(line.startswith("Variable no declarada")):
-            var = line.split("'")[1]
-            no_declared.append(var)
+# Si el archivo errors.txt empieza con "Error", no hace nada
+with open('salidas/errors.txt', 'r') as error_file:
+    lines = error_file.readlines()
+    if lines and lines[0].startswith("Error") or lines[0].startswith("Variable"):
+        print("Error en el archivo de errores")
+        sys.exit(1)
+    else:
+        variables = extract_variables()
+        print("Variables:", variables)
 
-# Anotar el árbol
-annotate_tree(root, variables, no_declared)
+        # Parsear el árbol AST
+        root = parse_ast(lines)
+
+        no_declared = []
+        with open('salidas/errors.txt', 'r') as file:
+            for line in file:
+                if(line.startswith("Variable no declarada")):
+                    var = line.split("'")[1]
+                    no_declared.append(var)
+
+        # Anotar el árbol
+        annotate_tree(root, variables, no_declared)
 
 
-# Mostrar el árbol anotado
-print_tree(root, variables)
-save_tree(root, variables, "salidas/ast_anotado.txt")
+        # Mostrar el árbol anotado
+        print_tree(root, variables)
+        # Eliminar el contenido del archivo de errores
+        open('salidas/errors.txt', 'w').close()
+                
+        save_tree(root, variables, "salidas/ast_anotado.txt")
 
-print("Variables actualizadas:", variables)
+        print("Variables actualizadas:", variables)
 
-# Actualizar el valor de las variables en el archivo de la tabla de símbolos
-with open('salidas/tabla_simbolos.txt', 'r') as file:
-    lines = file.readlines()
-for line in lines:
-    parts = line.split()
-    if len(parts) >= 4:
-        nombre = parts[0]
-        valor = variables[nombre][1]
-        print(f"Variable '{nombre}' tiene valor: {valor}")
-        update_variable_in_file(nombre, valor)
+        # Actualizar el valor de las variables en el archivo de la tabla de símbolos
+        with open('salidas/tabla_simbolos.txt', 'r') as file:
+            lines = file.readlines()
+        for line in lines:
+            parts = line.split()
+            if len(parts) >= 4:
+                nombre = parts[0]
+                valor = variables[nombre][1]
+                print(f"Variable '{nombre}' tiene valor: {valor}")
+                # Si el tipo de la variable es int y el valor es un flotante, mostrar un error
+                if variables[nombre][0] == "int" and isinstance(valor, float):
+                    with open('salidas/errors.txt', 'a') as file:
+                        file.write(f"Error: '{nombre}' debe ser un entero, pero es float.\n")
+                # Si el tipo de la variable es float y el valor es un entero, guardar con el valor flotante
+                elif variables[nombre][0] == "float" and isinstance(valor, int):
+                    update_variable_in_file(nombre, float(valor))
+                else:
+                    update_variable_in_file(nombre, valor)

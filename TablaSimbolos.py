@@ -127,6 +127,8 @@ if __name__ == "__main__":
         result = subprocess.run(['python', 'ts2.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         main()
     except subprocess.CalledProcessError as e:
+        with open("salidas/errors.txt", "a") as file:
+            file.write(f"Error interno al ejecutar ts2.py: {e}\n")
         print("Error durante la ejecucion (tabla de simbolos):")
         print(e)
         print("No se pudo crear la tabla de simbolos")

@@ -6,10 +6,12 @@ program
 >>>>id (a)
 >>>>id (x)
 >>>>id (c)
+>>>>id (a)
 >>decl
 >>>tipo (int)
 >>>list-id
 >>>>id (c)
+>>>>id (a)
 >>decl
 >>>tipo (bool)
 >>>list-id

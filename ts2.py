@@ -9,12 +9,7 @@ def extract_declared_variables(tokens):
                 nombre = tokens[i][1]
                 if nombre in declared_variables:
                     # Si el archivo errors.txt empieza con "No errors found", se elimina
-                    with open('salidas/errors.txt', 'r') as error_file:
-                        lines = error_file.readlines()
-                        if lines[0].startswith("No errors found"):
-                            lines = lines[1:]
-                    with open('salidas/errors.txt', 'w') as error_file:
-                        error_file.writelines(lines)
+                    verificarErrores()
                     if declared_variables[nombre] != tipo:
                         with open('salidas/errors.txt', 'a') as error_file:
                             error_file.write(f"Variable '{nombre}' declarada con un tipo diferente: {tipo}\n")
@@ -29,6 +24,14 @@ def extract_declared_variables(tokens):
         i += 1
     return declared_variables
 
+def verificarErrores():
+    with open('salidas/errors.txt', 'r') as error_file:
+        lines = error_file.readlines()
+        if lines[0].startswith("No errors found") or lines == []:
+            lines = lines[1:]
+    with open('salidas/errors.txt', 'w') as error_file:
+        error_file.writelines(lines)
+        
 def extract_used_variables(tokens):
     used_variables = set()
     i = 0
@@ -67,6 +70,7 @@ undeclared_variables = find_undeclared_variables(declared_variables, used_variab
 print("Undeclared Variables:", undeclared_variables)
 
 # Verificar en el archivo salidas/output.txt si el token ID y la variable no declarada existe y extraer la línea
+verificarErrores()
 with open('salidas/errors.txt', 'a') as error_file:
     for variable in undeclared_variables:
         for token in tokens:

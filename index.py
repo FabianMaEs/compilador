@@ -186,10 +186,7 @@ class IDE():
         self.syntax_text.config(state=tk.DISABLED)
         
         # Crear widgets para la pestaña semántica
-        self.semantic_text = tk.Text(self.semantic_tab, wrap="word", undo=True)
-        self.semantic_text.pack(fill="both", expand=True)
-        self.semantic_text.insert(tk.END, "Información semántica...")
-        self.semantic_text.config(state=tk.DISABLED)
+
         
         # Crear widgets para la pestaña de tabla de símbolos
         self.symbol_table_text = tk.Text(self.symbol_table, wrap="word", undo=True)
@@ -247,7 +244,6 @@ class IDE():
             self.syntax_text.configure(bg='#ffffff', fg='#000000')
             self.symbol_table_text.configure(bg='#ffffff', fg='#000000')
             
-            self.semantic_text.configure(bg='#ffffff', fg='#000000')
             self.intermediate_text.configure(bg='#ffffff', fg='#000000')
             self.errors_text.configure(bg='#ffffff', fg='#000000')
             self.results_text.configure(bg='#ffffff', fg='#000000')
@@ -263,7 +259,6 @@ class IDE():
             self.syntax_text.configure(bg='#2b2b2b', fg='#ffffff')
             self.symbol_table_text.configure(bg='#2b2b2b', fg='#ffffff')
 
-            self.semantic_text.configure(bg='#2b2b2b', fg='#ffffff')
             self.intermediate_text.configure(bg='#2b2b2b', fg='#ffffff')
             self.errors_text.configure(bg='#2b2b2b', fg='#ffffff')
             self.results_text.configure(bg='#2b2b2b', fg='#ffffff')
@@ -506,7 +501,7 @@ class IDE():
         print("Archivo de errores creado")
         self.update_text_widget(self.errors_text, errores)
         
-        if errores.startswith("Error") or errores.startswith("Variable no declarada"):
+        if errores.startswith("Error") or errores.startswith("Variable"):
             print("Error durante el análisis sintáctico:")
             self.verificarError()
             self.clear_syntax_image()
@@ -521,8 +516,7 @@ class IDE():
             # Ejecutar SemanticoAnotaciones.py
             print("Ejecutando SemanticoAnotaciones.py")
             self.run_semantic_annotations_analysis()
-
-
+            
     def clear_syntax_image(self):
         """Eliminar la imagen del análisis sintáctico si existe."""
         if os.path.exists('salidas/ast.png'):
@@ -534,6 +528,8 @@ class IDE():
         """Mostrar el análisis sintáctico y su representación gráfica."""
         with open('salidas/ast.txt', 'r') as file:
             analisis_sintactico = file.read()
+        # Reemplazar los caracteres de mayor que con espacios
+        analisis_sintactico = analisis_sintactico.replace('>', ' ')
         self.update_text_widget(self.syntax_text, analisis_sintactico)
 
         if os.path.exists('salidas/ast.png'):
@@ -573,14 +569,16 @@ class IDE():
     def run_semantic_annotations_analysis(self):
         """Ejecutar el análisis semántico con anotaciones."""
         try:
-            subprocess.run(['python', 'SemanticoAnotaciones.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            result = subprocess.run(['python', 'SemanticoAnotaciones.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             print("Ejecutando análisis semántico con anotaciones...")
             self.update_semantic_analysis()
+            self.update_symbol_table(result)
         except subprocess.CalledProcessError as e:
             print("Error durante la ejecución (semántico):")
             print(e)
 
     def update_semantic_analysis(self):
+        
         """Actualizar el widget semántico con el resultado de la ejecución."""
         with open('salidas/errors.txt', 'r') as file:
             errores = file.read()
@@ -590,17 +588,46 @@ class IDE():
         else:
             with open('salidas/ast_anotado.txt', 'r') as file:
                 analisis_semantico = file.read()
+                
+            # Reiniciar el Treeview
+            self.tree.delete(*self.tree.get_children())
             self.add_tree_nodes(analisis_semantico.strip().splitlines())
+            
+    def add_tree_nodes(self, lines):
+        # Crear un diccionario para almacenar los nodos y su ID
+        node_ids = {}
 
-    
+        for line in lines:
+            level = line.count('>')
+            node_name = line.strip().replace('>', '').strip()
+
+            # Filtrar los nodos "program", "list-decl" y "decl"
+            if node_name in ["program", "list-decl", "decl"]:
+                continue
+
+            # Agregar el nodo a la Treeview
+            if level == 0:
+                node_id = self.tree.insert("", "end", text=node_name)
+            else:
+                # Verificar si el nivel superior existe antes de acceder
+                if level - 1 in node_ids:
+                    parent_id = node_ids[level - 1]
+                    node_id = self.tree.insert(parent_id, "end", text=node_name)
+                else:
+                    # Si no existe, puedes optar por insertar el nodo en la raíz
+                    # o manejarlo de otra manera. Aquí lo insertamos como raíz
+                    node_id = self.tree.insert("", "end", text=node_name)
+
+            # Almacenar el ID del nodo actual
+            node_ids[level] = node_id
+
     def verificarError(self):
         # Mensaje de error a mostrar
-        error_message = "Error durante el análisis sintáctico. Revise la pestaña de errores."
+        error_message = "Error durante el análisis. Revise la pestaña de errores."
 
         # Aplicar la función a cada widget
         self.update_text_widget(self.syntax_text, error_message)
-        self.update_text_widget(self.semantic_text, error_message)
-        self.update_text_widget(self.semantic_text2, error_message)
+        #self.update_text_widget(self.semantic_tab, error_message)
         self.update_text_widget(self.symbol_table_text, error_message)
         self.update_text_widget(self.intermediate_text, error_message)
         self.update_text_widget(self.errors_text, open('salidas/errors.txt', 'r').read())

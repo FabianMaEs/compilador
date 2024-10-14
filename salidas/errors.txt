@@ -1,1 +1,6 @@
+Variable 'a' redeclarada con el mismo tipo: float
 Variable 'c' declarada con un tipo diferente: int
+Variable 'a' declarada con un tipo diferente: int
+Variable 'a' redeclarada con el mismo tipo: float
+Variable 'c' declarada con un tipo diferente: int
+Variable 'a' declarada con un tipo diferente: int
