@@ -510,8 +510,8 @@ class IDE():
             self.display_syntax_analysis()
 
             # Ejecutar TablaSimbolos.py
-            print("Ejecutando TablaSimbolos.py")
-            self.run_table_symbols_analysis()
+            #print("Ejecutando TablaSimbolos.py")
+            #self.run_table_symbols_analysis()
 
             # Ejecutar SemanticoAnotaciones.py
             print("Ejecutando SemanticoAnotaciones.py")
@@ -544,15 +544,15 @@ class IDE():
             img.bind("<Button-1>", self.open_full_image)
 
 
-    def run_table_symbols_analysis(self):
-        """Ejecutar el análisis de la tabla de símbolos."""
+    """def run_table_symbols_analysis(self):
+        
         try:
             result = subprocess.run(['python', 'TablaSimbolos.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             print("Ejecutando análisis de la tabla de símbolos...")
             self.update_symbol_table(result)
         except subprocess.CalledProcessError as e:
             print("Error durante la ejecución (tabla de símbolos):")
-            print(e)
+            print(e)"""
 
 
     def update_symbol_table(self, result):
