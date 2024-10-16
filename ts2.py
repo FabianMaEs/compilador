@@ -9,11 +9,12 @@ def extract_declared_variables(tokens):
                 nombre = tokens[i][1]
                 if nombre in declared_variables:
                     # Si el archivo errors.txt empieza con "No errors found", se elimina
-                    verificarErrores()
                     if declared_variables[nombre] != tipo:
+                        verificarErrores()
                         with open('salidas/errors.txt', 'a') as error_file:
                             error_file.write(f"Variable '{nombre}' declarada con un tipo diferente: {tipo}\n")
                     else:
+                        verificarErrores()
                         with open('salidas/errors.txt', 'a') as error_file:
                             error_file.write(f"Variable '{nombre}' redeclarada con el mismo tipo: {tipo}\n")
                 else:
@@ -27,10 +28,10 @@ def extract_declared_variables(tokens):
 def verificarErrores():
     with open('salidas/errors.txt', 'r') as error_file:
         lines = error_file.readlines()
-        if lines[0].startswith("No errors found") or lines == []:
-            lines = lines[1:]
-    with open('salidas/errors.txt', 'w') as error_file:
-        error_file.writelines(lines)
+        if lines and lines[0].startswith("No errors found"):
+            # Eliminar todo el contenido del archivo
+            with open('salidas/errors.txt', 'w') as error_file:
+                error_file.write("")
         
 def extract_used_variables(tokens):
     used_variables = set()
@@ -77,3 +78,6 @@ with open('salidas/errors.txt', 'a') as error_file:
             if token[0] == "ID" and token[1] == variable:
                 error_file.write(f"Variable no declarada: '{variable}' en la línea {token[2]}\n")
                 break
+    # si no hay variables no declaradas y el archivo errors.txt está vacío, se imprime "No errors found"
+    if undeclared_variables == set() and open('salidas/errors.txt', 'r').read() == "":
+        error_file.write("No errors found\n")

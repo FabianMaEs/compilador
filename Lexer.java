@@ -7,7 +7,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Lexer {
-    private static final String[] RESERVED_WORDS = { "program", "if", "else", "fi", "do", "until", "while", "read", "write",
+    private static final String[] RESERVED_WORDS = { "program", "if", "else", "do", "while", "read", "write",
             "float", "int", "bool", "not", "and", "or", "true", "false", "then" };
     
     private static final HashMap<String, String> RESERVED_WORDS_MAP = createReservedWordsMap();
@@ -75,11 +75,14 @@ public class Lexer {
             return TokenType.CADENA;
         } else if (match.matches(getReservedWordsRegex())) {
             return TokenType.PALABRA_RESERVADA;
-        } else if (match.matches("!|!=|<=|>=|&&|\\|\\||==")) {
+        }
+        else if (match.matches("!=|==|<=|>=|&&|\\|\\|")) {
             return TokenType.SÍMBOLO;
-        } else if (match.matches("[-+*/^<>!=;,(){}]")) {
+        } 
+        else if (match.matches("[-+*/^<>!=;,(){}]")) {
             return TokenType.SÍMBOLO;
-        } else if (match.matches("\\w+")) {
+        }
+         else if (match.matches("\\w+")) {
             return TokenType.IDENTIFICADOR;
         } else {
             return TokenType.DESCONOCIDO;
@@ -107,7 +110,8 @@ public class Lexer {
     }
     
     private static String getRegexPattern() {
-        return "\"[^\"]*\"|'[^']*'|//.*|/\\*(.|\\R)*?\\*/|\\b(" + getReservedWordsRegex() + ")\\b|\\d+(\\.\\d+)?|!|!=|<=|>=|&&|\\|\\||==|\\w+|[-+*/^<>!=;,(){}]|\\n|\\S";
+        return "\"[^\"]*\"|'[^']*'|//.*|/\\*(.|\\R)*?\\*/|\\b(" + getReservedWordsRegex() + ")\\b|\\d+(\\.\\d+)?|!=|<=|>=|&&|\\|\\||==|\\w+|[-+*/^<>!;,(){}]|\\n|\\S";
+
     }    
 
     private static String getReservedWordsRegex() {
@@ -127,9 +131,7 @@ public class Lexer {
         map.put("program", "PRO");
         map.put("if", "IF");
         map.put("else", "ELS");
-        map.put("fi", "FI");
         map.put("do", "DO");
-        map.put("until", "UNT");
         map.put("while", "WHI");
         map.put("read", "REA");
         map.put("write", "WRI");
@@ -168,6 +170,12 @@ public class Lexer {
         map.put("&&", "AND");
         map.put("||", "OR");
         map.put("==", "EQL");
+        map.put("AND", "AND");
+        map.put("OR", "OR");
+        map.put("NOT", "NOT");
+        map.put("and", "AND");
+        map.put("or", "OR");
+        map.put("not", "NOT");
         return map;
     }
 

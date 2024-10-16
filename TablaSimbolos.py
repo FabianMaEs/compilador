@@ -81,7 +81,7 @@ class SymbolTable:
                 while line is not None:
                     line_numbers.append(line.lineno)
                     line = line.next
-                file.write(f"{bucket.name:<14} {bucket.var_type:<8} {bucket.memloc:<9} {bucket.value:<8} {', '.join(map(str, line_numbers))}\n")
+                file.write(f"{bucket.name:<14}\t{bucket.var_type:<8}\t{bucket.memloc:<9}\t{bucket.value:<8}\t{','.join(map(str, line_numbers))}\n")
 
 
 def main():
@@ -119,7 +119,7 @@ def main():
                 variable = tokens[1]
                 symbol_table.insert(variable, lineno, loc, var_type, value)
     
-    symbol_table.print_table()
+    #symbol_table.print_table()
     symbol_table.save_table()
 
 if __name__ == "__main__":
@@ -132,6 +132,3 @@ if __name__ == "__main__":
         print("Error durante la ejecucion (tabla de simbolos):")
         print(e)
         print("No se pudo crear la tabla de simbolos")
-    
-    
-    

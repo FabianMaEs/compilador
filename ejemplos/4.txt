@@ -1,6 +1,9 @@
 program {
-    int x, y;
-    float a;
-    bool ver;
-    ver = false;
+    int x;
+x = 4;
+    x = x - 5;
 }
+
+
+
+

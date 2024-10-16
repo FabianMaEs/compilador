@@ -61,15 +61,15 @@ class IDE():
         self.code_text = tk.Text(self.code_frame, wrap="word", undo=True)  # Habilita el deshacer
         self.code_text.pack(side="left", fill="both", expand=True)  # Hacer que el widget Text llene el espacio del marco
         
-        # Abrir el archivo ejemplos/blanca.txt en el editor
+        # Abrir el archivo ejemplos/prueba.txt en el editor
         try: 
-            with open('ejemplos/blanca.txt', 'r') as file:
+            with open('ejemplos/prueba.txt', 'r') as file:
                 self.code_text.insert(tk.END, file.read())
                 self.apply_highlight()
         except:
             print("Error al abrir el archivo de ejemplo")
             pass
-                
+        
         # Tabulación inteligente
         self.code_text.config(tabs=('1c'))
         
@@ -138,24 +138,42 @@ class IDE():
         self.syntax_tab_image = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.syntax_tab_image, text="Sintáctico gráfico")
 
-        # self.semantic_tab = ttk.Frame(self.analyzer_notebook)
-        # self.analyzer_notebook.add(self.semantic_tab, text="Semántico")
-        
         # Crear la pestaña semántica
         self.semantic_tab = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.semantic_tab, text="Semántico anotaciones")
         
         # Crear un Treeview
-        self.tree = ttk.Treeview(self.semantic_tab)
-        self.tree.pack(fill="both", expand=True)
+        self.tree_semantic = ttk.Treeview(self.semantic_tab)
+        self.tree_semantic.pack(fill="both", expand=True)
 
         # Agregar una barra de desplazamiento
-        scrollbar = ttk.Scrollbar(self.semantic_tab, orient="vertical", command=self.tree.yview)
+        scrollbar = ttk.Scrollbar(self.semantic_tab, orient="vertical", command=self.tree_semantic.yview)
         scrollbar.pack(side="right", fill="y")
-        self.tree.configure(yscrollcommand=scrollbar.set)
-        
+        self.tree_semantic.configure(yscrollcommand=scrollbar.set)
+
+        # Crear un marco para la tabla de símbolos
         self.symbol_table = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.symbol_table, text="Tabla de símbolos")
+
+        # Crear el Treeview para la tabla de símbolos
+        self.tree_table = ttk.Treeview(self.symbol_table, columns=("Identificador", "Tipo", "Número", "Valor", "Posiciones"), show="headings")
+        
+        # Definir los encabezados de la tabla
+        self.tree_table.heading("Identificador", text="Identificador")
+        self.tree_table.heading("Tipo", text="Tipo")
+        self.tree_table.heading("Número", text="Número")
+        self.tree_table.heading("Valor", text="Valor")
+        self.tree_table.heading("Posiciones", text="Posiciones")
+
+        # Definir el ancho de las columnas
+        self.tree_table.column("Identificador", width=100)
+        self.tree_table.column("Tipo", width=50)
+        self.tree_table.column("Número", width=50)
+        self.tree_table.column("Valor", width=100)
+        self.tree_table.column("Posiciones", width=150)
+
+        # Agregar el Treeview a la interfaz
+        self.tree_table.pack(expand=True, fill='both')
         
         self.intermediate_tab = ttk.Frame(self.analyzer_notebook)
         self.analyzer_notebook.add(self.intermediate_tab, text="Código intermedio")
@@ -185,15 +203,6 @@ class IDE():
         self.syntax_text.insert(tk.END, "Información sintáctica...")
         self.syntax_text.config(state=tk.DISABLED)
         
-        # Crear widgets para la pestaña semántica
-
-        
-        # Crear widgets para la pestaña de tabla de símbolos
-        self.symbol_table_text = tk.Text(self.symbol_table, wrap="word", undo=True)
-        self.symbol_table_text.pack(fill="both", expand=True)
-        self.symbol_table_text.insert(tk.END, "Tabla de símbolos...")
-        self.symbol_table_text.config(state=tk.DISABLED)
-        
         # Crear widgets para la pestaña de código intermedio
         self.intermediate_text = tk.Text(self.intermediate_tab, wrap="word", undo=True)
         self.intermediate_text.pack(fill="both", expand=True)
@@ -214,7 +223,6 @@ class IDE():
         
         self.color_scheme.set('dark')
         self.change_color_scheme()
-        
 
     def on_mouse_wheel(self, event):
         self.code_text.yview_scroll(int(-1*(event.delta/120)), "units")
@@ -227,7 +235,6 @@ class IDE():
         self.line_numbers.update_idletasks() # Actualizar los números de línea
         self.update_line_numbers()
         
-    
     # Actualizar los números de línea
     def update_line_numbers(self, event=None):
         line_numbers_content = "\n".join(str(i) for i in range(1, int(self.code_text.index('end-1c').split('.')[0])))
@@ -242,7 +249,6 @@ class IDE():
             self.code_text.configure(bg='#ffffff', fg='#000000')  # Cambiar a esquema de color claro
             self.lexical_text.configure(bg='#ffffff', fg='#000000')
             self.syntax_text.configure(bg='#ffffff', fg='#000000')
-            self.symbol_table_text.configure(bg='#ffffff', fg='#000000')
             
             self.intermediate_text.configure(bg='#ffffff', fg='#000000')
             self.errors_text.configure(bg='#ffffff', fg='#000000')
@@ -257,7 +263,6 @@ class IDE():
             self.code_text.configure(bg='#2b2b2b', fg='#ffffff')  # Cambiar a esquema de color oscuro
             self.lexical_text.configure(bg='#2b2b2b', fg='#ffffff')
             self.syntax_text.configure(bg='#2b2b2b', fg='#ffffff')
-            self.symbol_table_text.configure(bg='#2b2b2b', fg='#ffffff')
 
             self.intermediate_text.configure(bg='#2b2b2b', fg='#ffffff')
             self.errors_text.configure(bg='#2b2b2b', fg='#ffffff')
@@ -466,8 +471,12 @@ class IDE():
         # Limpiar archivos de salida
         for filename in ['output.txt', 'errors.txt', 'ast.txt']:
             with open(os.path.join(output_dir, filename), 'w') as file:
-                file.write("")
+                if filename == 'errors.txt':
+                    file.write("No errors found")
+                else:
+                    file.write("")
 
+        
         # Guardar la salida del análisis léxico
         output_file = os.path.join(output_dir, 'output.txt')
         with open(output_file, 'w') as file:
@@ -516,7 +525,7 @@ class IDE():
             # Ejecutar SemanticoAnotaciones.py
             print("Ejecutando SemanticoAnotaciones.py")
             self.run_semantic_annotations_analysis()
-            
+
     def clear_syntax_image(self):
         """Eliminar la imagen del análisis sintáctico si existe."""
         if os.path.exists('salidas/ast.png'):
@@ -529,7 +538,7 @@ class IDE():
         with open('salidas/ast.txt', 'r') as file:
             analisis_sintactico = file.read()
         # Reemplazar los caracteres de mayor que con espacios
-        analisis_sintactico = analisis_sintactico.replace('>', ' ')
+        analisis_sintactico = analisis_sintactico.replace('?', ' ')
         self.update_text_widget(self.syntax_text, analisis_sintactico)
 
         if os.path.exists('salidas/ast.png'):
@@ -555,34 +564,22 @@ class IDE():
             print(e)"""
 
 
-    def update_symbol_table(self, result):
-        """Actualizar el widget de la tabla de símbolos con el resultado de la ejecución."""
-        with open('salidas/tabla_simbolos.txt', 'r') as file:
-            tabla_simbolos = file.read()
-        self.update_text_widget(self.symbol_table_text, tabla_simbolos)
-
-        if result.returncode != 0:
-            print("Error durante la tabla de símbolos:")
-            self.verificarError()
-
-
     def run_semantic_annotations_analysis(self):
         """Ejecutar el análisis semántico con anotaciones."""
         try:
-            result = subprocess.run(['python', 'SemanticoAnotaciones.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            subprocess.run(['python', 'SemanticoAnotaciones.py'], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
             print("Ejecutando análisis semántico con anotaciones...")
             self.update_semantic_analysis()
-            self.update_symbol_table(result)
+            self.update_symbol_table()
         except subprocess.CalledProcessError as e:
             print("Error durante la ejecución (semántico):")
             print(e)
 
     def update_semantic_analysis(self):
-        
         """Actualizar el widget semántico con el resultado de la ejecución."""
         with open('salidas/errors.txt', 'r') as file:
             errores = file.read()
-        if errores.startswith("Error") or errores.startswith("Variable no declarada"):
+        if errores.startswith("Error") or errores.startswith("Variable no declarada") or errores.startswith("Variable '"):
             print("Error durante el análisis semántico:")
             self.verificarError()
         else:
@@ -590,7 +587,7 @@ class IDE():
                 analisis_semantico = file.read()
                 
             # Reiniciar el Treeview
-            self.tree.delete(*self.tree.get_children())
+            self.tree_semantic.delete(*self.tree_semantic.get_children())
             self.add_tree_nodes(analisis_semantico.strip().splitlines())
             
     def add_tree_nodes(self, lines):
@@ -598,8 +595,8 @@ class IDE():
         node_ids = {}
 
         for line in lines:
-            level = line.count('>')
-            node_name = line.strip().replace('>', '').strip()
+            level = line.count('?')
+            node_name = line.strip().replace('?', '').strip()
 
             # Filtrar los nodos "program", "list-decl" y "decl"
             if node_name in ["program", "list-decl", "decl"]:
@@ -607,20 +604,20 @@ class IDE():
 
             # Agregar el nodo a la Treeview
             if level == 0:
-                node_id = self.tree.insert("", "end", text=node_name)
+                node_id = self.tree_semantic.insert("", "end", text=node_name)
             else:
                 # Verificar si el nivel superior existe antes de acceder
                 if level - 1 in node_ids:
                     parent_id = node_ids[level - 1]
-                    node_id = self.tree.insert(parent_id, "end", text=node_name)
+                    node_id = self.tree_semantic.insert(parent_id, "end", text=node_name)
                 else:
                     # Si no existe, puedes optar por insertar el nodo en la raíz
                     # o manejarlo de otra manera. Aquí lo insertamos como raíz
-                    node_id = self.tree.insert("", "end", text=node_name)
+                    node_id = self.tree_semantic.insert("", "end", text=node_name)
 
             # Almacenar el ID del nodo actual
             node_ids[level] = node_id
-
+        
     def verificarError(self):
         # Mensaje de error a mostrar
         error_message = "Error durante el análisis. Revise la pestaña de errores."
@@ -628,7 +625,6 @@ class IDE():
         # Aplicar la función a cada widget
         self.update_text_widget(self.syntax_text, error_message)
         #self.update_text_widget(self.semantic_tab, error_message)
-        self.update_text_widget(self.symbol_table_text, error_message)
         self.update_text_widget(self.intermediate_text, error_message)
         self.update_text_widget(self.errors_text, open('salidas/errors.txt', 'r').read())
         for widget in self.syntax_tab_image.winfo_children():
@@ -639,6 +635,29 @@ class IDE():
         widget.delete('1.0', tk.END)
         widget.insert(tk.END, message)
         widget.config(state=tk.DISABLED)
+        
+    def update_symbol_table(self):
+        # Reiniciar el Treeview
+        self.tree_table.delete(*self.tree_table.get_children())
+        # Cargar los datos en la tabla de símbolos
+        self.load_symbol_table("salidas/tabla_simbolos.txt")
+        
+    def update_symbol_table_error(self):
+        # Reiniciar el Treeview
+        self.tree_table.delete(*self.tree_table.get_children())
+        # Cargar los datos en la tabla de símbolos
+        # Mostrar un mensaje de error
+        self.tree_table.insert("", "end", values=("Error", "Error", "Error", "Error", "Error"))
+
+    def load_symbol_table(self, filename):
+        print("Cargando tabla de símbolos...")
+        with open(filename, "r") as file:
+            for line in file:
+                # Separar las columnas por tabulaciones
+                columns = line.strip().split("\t")
+                # Insertar la fila en el Treeview
+                self.tree_table.insert("", "end", values=columns)
+
     
     def open_full_image(self, event=None):
         print("Abriendo imagen...")

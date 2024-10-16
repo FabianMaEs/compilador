@@ -7,8 +7,8 @@ TOKEN_VALUES = {
     "MOR": "<", "MAR": ">", "IGU": "=", "NOT": "!", "PYC": ";",
     "COM": ",", "PA": "(", "PC": ")", "LLA": "{", "LLC": "}",
     "NEQ": "!=", "LEQ": "<=", "GEQ": ">=", "AND": "&&", "OR": "||",
-    "EQL": "==", "PRO": "program", "IF": "if", "ELS": "else",
-    "FI": "fi", "DO": "do", "UNT": "until", "WHI": "while",
+    "EQL": "==", "PRO": "program", "IF": "if", "ELS": "else", 
+    "DO": "do", "WHI": "while",
     "REA": "read", "WRI": "write", "FLO": "float", "INT": "int",
     "BOO": "bool", "TRU": "true", "FAL": "false"
 }
@@ -37,6 +37,7 @@ class Parser:
 
     # Método para analizar el programa y construir el AST
     def parse_program(self):
+        print("Parsing program")  # Mensaje de depuración
         node = ASTNode('program')
         self.match('PRO')
         self.match('LLA')
@@ -54,20 +55,35 @@ class Parser:
             expected_value = TOKEN_VALUES.get(token_type, token_type)
             error_message = f"Error de sintaxis: Se esperaba '{expected_value}' pero se obtuvo '{self.current_token().value}' en la línea {self.current_token().line} y columna {self.current_token().column}"
             self.errors.append(error_message)
-            self.synchronize()  # Intentar recuperar el análisis
-            
+            self.synchronize()
+    
+    # Método para obtener el token actual
     def current_token(self):
+        print(f"Token actual_current token: {self.tokens[self.current_token_index].type}, {self.tokens[self.current_token_index + 1].type if self.current_token_index + 1 < len(self.tokens) else 'EOF'}, {self.tokens[self.current_token_index + 2].type if self.current_token_index + 2 < len(self.tokens) else 'EOF'}")  # Mensaje de depuración
         return self.tokens[self.current_token_index]
-
+    
+    # Método para avanzar al siguiente token
     def advance(self):
+        print(f"Avanzando al token: {self.current_token().type}")  # Mensaje de depuración
         if self.current_token_index < len(self.tokens) - 1:
             self.current_token_index += 1
-            
+        else:
+            print("No more tokens to advance to.")
+    
     # Método para sincronizar el análisis después de un error
     # Se salta los tokens hasta encontrar un token de sincronización
     def synchronize(self):
-        sync_tokens = {'PYC', 'LLC', 'LLA', 'PA', 'PC', 'IF', 'ELS', 'FI', 'DO', 'UNT', 'WHI', 'WRI', 'READ'}
+        sync_tokens = {'PYC', 'LLC', 'LLA', 'IF', 'ELS', 'DO', 'UNT', 'WHI', 'WRI', 'READ', 'ID', 'INT', 'FLO', 'BOO', 'EOF'}
+        print(f"Token actual: {self.current_token().type}, fila: {self.current_token().line}, columna: {self.current_token().column}")  # Mensaje de depuración
         while self.current_token().type not in sync_tokens and self.current_token().type != 'EOF':
+            print(f"Sincronizando en el token: {self.current_token().type}")  # Mensaje de depuración
+            self.advance()
+        # Avanzar una vez más para salir del token de sincronización
+        if self.current_token().type in sync_tokens and self.current_token().type != 'EOF':
+            self.advance()
+            
+    def synchronize_token(self, token_type):
+        while self.current_token().type != token_type and self.current_token().type != 'EOF':
             self.advance()
 
     def parse_list_decl(self):
@@ -76,11 +92,16 @@ class Parser:
             node.children.append(self.parse_decl())
         return node
 
+    # Método para analizar una declaración
     def parse_decl(self):
         node = ASTNode('decl')
         node.children.append(self.parse_tipo())
-        node.children.append(self.parse_list_id())
-        self.match('PYC')
+        if not node.children:  # Verifica si no se ha agregado ningún identificador
+            self.errors.append(f"Error de sintaxis: Se esperaba al menos un identificador en la declaración en la línea {self.current_token().line}.")
+            self.synchronize()  # Ahora esto sigue funcionando como antes, pero sin romper el flujo
+        else:
+            node.children.append(self.parse_list_id())
+            self.match('PYC')
         return node
 
     def parse_tipo(self):
@@ -90,8 +111,8 @@ class Parser:
             return ASTNode('tipo', token.value)
         else:
             self.errors.append(f"Error de sintaxis: Se esperaba un tipo pero se obtuvo {token.type}")
-            raise SyntaxError(f"Se esperaba un tipo pero se obtuvo {token.type}")
-
+            self.synchronize()
+            
     def parse_list_id(self):
         node = ASTNode('list-id')
         node.children.append(ASTNode('id', self.current_token().value))
@@ -125,66 +146,52 @@ class Parser:
         elif token.type == 'ID':
             return self.parse_sent_assign()
         else:
-            raise SyntaxError(f"Token inesperado {token.type}")
-
+            self.errors.append(f"Error de sintaxis: Token inesperado {token.type} en la línea {token.line} y columna {token.column}")
+            self.synchronize()
+            
     def parse_sent_if(self):
-        
+        print("Parsing sent-if")  # Mensaje de depuración   
         node = ASTNode('sent-if')  # Nodo principal para el if
         self.match('IF')
         self.match('PA')  # Paréntesis de apertura para la condición
         node.children.append(self.parse_exp_bool())  # Nodo para la condición
         self.match('PC')  # Paréntesis de cierre
-        
-        # Bloque o sentencia del if
-        if self.current_token().type == 'LLA':  # Si es un bloque
-            node.children.append(self.parse_bloque())
-        else:
-            node.children.append(self.parse_sent())  # Sentencia simple si no es bloque
-        
+        {
+            node.children.append(self.parse_bloque() if self.current_token().type == 'LLA' else self.parse_sent())
+        }
+
         # Verificar si hay un else
-        if self.current_token().type == 'ELS':
+        if True:
             self.match('ELS')
-            if self.current_token().type == 'IF':  # Si el else tiene un if anidado
-                node.children.append(self.parse_sent_if())  # Llamada recursiva a parse_sent_if
-            elif self.current_token().type == 'LLA':  # Si es un bloque
-                node.children.append(self.parse_bloque())
-            else:  # Si es una sentencia simple
-                node.children.append(self.parse_sent())
-        
+            {
+                node.children.append(self.parse_sent_if() if self.current_token().type == 'IF' else (self.parse_bloque() if self.current_token().type == 'LLA' else self.parse_sent()))
+            }
         return node
 
     def parse_sent_while(self):
-        
         node = ASTNode('sent-while')
         self.match('WHI')
         self.match('PA')
         node.children.append(self.parse_exp_bool())
         self.match('PC')
-        if self.current_token().type == 'LLA': # Verifica si es un bloque
-            node.children.append(self.parse_bloque())
-            print("current_token: ", self.current_token().type)
-            if self.current_token().type == 'PYC':
-                self.errors.append(f"Error de sintaxis: No se esperaba un punto y coma después de un bloque while en la línea {self.current_token().line} y columna {self.current_token().column}")
-                raise SyntaxError("No se esperaba un punto y coma después de un bloque")
-        else:
-            node.children.append(self.parse_sent())  # Si no, es una línea simple
+        {
+            node.children.append(self.parse_bloque() if self.current_token().type == 'LLA' else self.parse_sent())
+        }
         return node
 
     def parse_sent_do(self):
-        
         node = ASTNode('sent-do')
         self.match('DO')
-        if self.current_token().type == 'LLA': # Verifica si es un bloque
-            node.children.append(self.parse_bloque())
-        else:
-            node.children.append(self.parse_sent())  # Si no, es una línea simple
-        #self.match('UNT')
+        {
+            node.children.append(self.parse_bloque() if self.current_token().type == 'LLA' else self.parse_sent())
+        }
         self.match('WHI')
         self.match('PA')
         node.children.append(self.parse_exp_bool())
         self.match('PC')
         self.match('PYC')
         return node
+
     
     def parse_sent_read(self):
         
@@ -229,39 +236,37 @@ class Parser:
         return node
 
     def parse_exp_bool(self):
-        
         node = self.parse_comb()
         while self.current_token().type == 'OR':
             self.advance()
             # Validar que hay una expresión después de 'OR'
-            if self.current_token().type in ('PA', 'TRU', 'FAL'):  # Otras posibles expresiones
+            if self.current_token().type in ('PA', 'TRU', 'FAL', 'ID', 'NUM'):  # Otras posibles expresiones
                 op_node = ASTNode('or', 'or')
                 op_node.children.append(node)
                 op_node.children.append(self.parse_comb())
                 node = op_node
             else:
-                raise SyntaxError("Se esperaba una expresión después de 'OR' (No implementado)")
+                self.errors.append(f"Se esperaba una expresión después de 'OR' en la línea {self.current_token().line} y columna {self.current_token().column}")
+                self.synchronize()
         return node
 
-
     def parse_comb(self):
-        
         node = self.parse_igualdad()
         while self.current_token().type == 'AND':
             self.advance()
             # Validar que hay una expresión después de 'AND'
-            if self.current_token().type in ('PA', 'TRU', 'FAL'):  # Otras posibles expresiones
+            if self.current_token().type in ('PA', 'TRU', 'FAL', 'ID', 'NUM'):  # Otras posibles expresiones
                 op_node = ASTNode('and', 'and')
                 op_node.children.append(node)
                 op_node.children.append(self.parse_igualdad())
                 node = op_node
             else:
-                raise SyntaxError("Se esperaba una expresión después de 'AND'. (No implementado)")
+                self.errors.append(f"Se esperaba una expresión después de 'AND' en la línea {self.current_token().line} y columna {self.current_token().column}")
+                self.synchronize()
         return node
 
 
     def parse_igualdad(self):
-        
         node = self.parse_rel()
         while self.current_token().type in ('EQL', 'NEQ'):
             op_node = ASTNode('igualdad', self.current_token().value)
@@ -272,9 +277,11 @@ class Parser:
         return node
 
     def parse_rel(self):
-        
         node = self.parse_expr()
         if self.current_token().type in ('LEQ', 'GEQ', 'MOR', 'MAR'):
+            print("Parsing rel")  # Mensaje de depuración
+            print(self.current_token().type)  # Mensaje de depuración
+            print(self.current_token().value)  # Mensaje de depuración
             op_node = ASTNode('rel', self.current_token().value)
             self.advance()
             op_node.children.append(node)
@@ -283,7 +290,6 @@ class Parser:
         return node
 
     def parse_expr(self):
-        
         node = self.parse_term()
         while self.current_token().type in ('MAS', 'MEN'):
             op_node = ASTNode('expr', self.current_token().value)
@@ -326,12 +332,16 @@ class Parser:
             self.advance()
             return ASTNode('factor', token.value)
         else:
-            raise SyntaxError(f"Token inesperado {token.type}")
+            self.errors.append(f"Error de sintaxis: Token inesperado {token.type} en la línea {token.line} y columna {token.column}")
+            self.synchronize()
 
 # Funciones para visualizar el AST. Si el graph argumento es None, se crea un nuevo gráfico
 # y se devuelve el gráfico resultante. De lo contrario, se agrega el nodo actual al gráfico existente.
 # Despues de agregar el nodo actual, se llama recursivamente a la función para cada hijo del nodo actual.
 def visualize_ast(node, graph=None, parent=None):
+    if node is None:
+        return graph
+
     if graph is None:
         graph = Digraph()
         graph.node('root', node.type)
@@ -352,8 +362,11 @@ def visualize_ast(node, graph=None, parent=None):
 
 # Función para serializar el AST en un formato de texto
 def serialize_ast(node, level=0):
+    if node is None:
+        return []
+    
     lines = []
-    indent = '>' * level
+    indent = '?' * level
     label = f"{node.type}"
     if node.value is not None:
         label += f" ({node.value})"
@@ -374,7 +387,8 @@ with open('salidas/ast.txt', 'w') as file:
 with open('salidas/errors.txt', 'r') as file:
     errores = file.read()
 if errores.startswith("Error") or errores.startswith("Variable no declarada"):
-    print("Hay errores sintacticos, no se puede crear el AST")
+    print("Hay errores sintacticos, no se puede crear el AST:", errores)
+    
 else:
     print("No hay errores sintacticos, se creará el AST")
     ast = None
@@ -399,7 +413,6 @@ else:
     try:
         parser = Parser(tokens)
         ast = parser.parse_program()
-
         # Visualización del AST
         graph = visualize_ast(ast)
         graph.render(output_path, format='png', view=False)
@@ -410,12 +423,14 @@ else:
             f.write('\n'.join(ast_text))
 
     except SyntaxError as e:
-        error_message = f"Error de sintaxis: {str(e)} en la línea {parser.current_token().line} y columna {parser.current_token().column} '{parser.current_token().value}'"
-        with open('salidas/errors.txt', 'w') as error_file:
+        error_message = f"Error de sintaxis: {str(e)} en la línea {parser.current_token().line} y columna {parser.current_token().column} '{parser.current_token().value}' (Try - SyntaxError)"
+        with open('salidas/errors.txt', 'a') as error_file:
             error_file.write(error_message)
 
     # Guardar todos los errores detectados
     if parser.errors:
+        print("Errors found:")
+        print (parser.errors)
         with open('salidas/errors.txt', 'w') as error_file:
             for error in parser.errors:
                 error_file.write(error + '\n')
@@ -439,4 +454,6 @@ else:
     if os.path.exists('salidas/errors.txt') and parser.errors:
         print("Errors successfully written to salidas/errors.txt")
     else:
+        with open('salidas/errors.txt', 'w') as error_file:
+            error_file.write("No errors found")
         print("No errors found or failed to write errors to salidas/errors.txt")
