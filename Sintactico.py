@@ -241,7 +241,7 @@ class Parser:
             self.advance()
             # Validar que hay una expresión después de 'OR'
             if self.current_token().type in ('PA', 'TRU', 'FAL', 'ID', 'NUM'):  # Otras posibles expresiones
-                op_node = ASTNode('or', 'or')
+                op_node = ASTNode('comparacion', 'or')
                 op_node.children.append(node)
                 op_node.children.append(self.parse_comb())
                 node = op_node
@@ -256,7 +256,7 @@ class Parser:
             self.advance()
             # Validar que hay una expresión después de 'AND'
             if self.current_token().type in ('PA', 'TRU', 'FAL', 'ID', 'NUM'):  # Otras posibles expresiones
-                op_node = ASTNode('and', 'and')
+                op_node = ASTNode('comparacion', 'and')
                 op_node.children.append(node)
                 op_node.children.append(self.parse_igualdad())
                 node = op_node
@@ -269,7 +269,7 @@ class Parser:
     def parse_igualdad(self):
         node = self.parse_rel()
         while self.current_token().type in ('EQL', 'NEQ'):
-            op_node = ASTNode('igualdad', self.current_token().value)
+            op_node = ASTNode('comparacion', self.current_token().value)
             self.advance()
             op_node.children.append(node)
             op_node.children.append(self.parse_rel())
@@ -282,7 +282,7 @@ class Parser:
             print("Parsing rel")  # Mensaje de depuración
             print(self.current_token().type)  # Mensaje de depuración
             print(self.current_token().value)  # Mensaje de depuración
-            op_node = ASTNode('rel', self.current_token().value)
+            op_node = ASTNode('comparacion', self.current_token().value)
             self.advance()
             op_node.children.append(node)
             op_node.children.append(self.parse_expr())
