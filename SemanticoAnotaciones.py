@@ -219,7 +219,7 @@ def annotate_tree(root, variables):
     evaluate(root, variables)
 
 def save_tree(node, file, indent=0):
-    indent_str = ' ' * (2 * indent)
+    indent_str = '?' * (indent)
     # Mostrar el nombre y detalles del nodo
     if isinstance(node, FactorNode):
         if '(' in node.nombre:
