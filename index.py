@@ -590,6 +590,22 @@ class IDE():
             self.tree_semantic.delete(*self.tree_semantic.get_children())
             self.add_tree_nodes(analisis_semantico.strip().splitlines())
             
+            self.open_tree_branch()
+            
+    def open_tree_branch(self, event=None):
+        """Abrir todas las ramas del árbol recursivamente."""
+        def open_recursive(item):
+            # Abrir el nodo actual
+            self.tree_semantic.item(item, open=True)
+            # Llamar recursivamente para cada hijo
+            for child in self.tree_semantic.get_children(item):
+                open_recursive(child)
+
+        # Iniciar el proceso recursivo en cada elemento de primer nivel
+        for item in self.tree_semantic.get_children():
+            open_recursive(item)
+
+            
     def add_tree_nodes(self, lines):
         # Crear un diccionario para almacenar los nodos y su ID
         node_ids = {}

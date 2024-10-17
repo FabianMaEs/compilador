@@ -59,6 +59,9 @@ def create_node(line):
     elif len(parts) > 1 and parts[1].strip('()') in ('+', '-', '*', '/'):
         operador = parts[1].strip('()')
         return OperationNode(nombre, operador=operador)
+    elif nombre.startswith('tipo'):
+        tipo = parts[1].strip('()')
+        return Node(tipo)
     elif nombre == 'factor':
         valor_str = parts[1].strip('()')
         try:
@@ -283,6 +286,8 @@ def save_tree(node, file, indent=0):
         file.write(f"{indent_str}{node.nombre}\n")
     elif node.nombre.startswith(('expr', 'term')):
         file.write(f"{indent_str}{node.nombre}\n")
+    elif isinstance(node, IdentifierNode):
+        file.write(f"{indent_str}{node.variable}\n")
     elif node.tipo and node.valor is not None:
         file.write(f"{indent_str}{node.nombre}\n")
     else:
