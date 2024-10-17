@@ -97,6 +97,24 @@ def parse_ast(file_path):
             stack.append(node)
     return root
 
+def instanceOf(node):
+    if isinstance(node, FactorNode):
+        return 'FactorNode'
+    elif isinstance(node, OperationNode):
+        return 'OperationNode'
+    elif isinstance(node, ComparisonNode):
+        return 'ComparisonNode'
+    elif isinstance(node, IdentifierNode):
+        return 'IdentifierNode'
+    elif isinstance(node, IfNode):
+        return 'IfNode'
+    elif isinstance(node, DoWhileNode):
+        return 'DoWhileNode'
+    elif isinstance(node, WhileNode):
+        return 'WhileNode'
+    else:
+        return 'Node'
+
 def evaluate(node, variables):
     # Si es un nodo factor, verificar si es un identificador en la tabla de símbolos
     if isinstance(node, FactorNode):
@@ -118,6 +136,28 @@ def evaluate(node, variables):
             factor1 = node.hijos[0]
             factor2 = node.hijos[1]
             operador = node.operador
+            
+            # Verificar si factor1 es una variable y extraer su valor desde la tabla de símbolos
+            if isinstance(factor1, FactorNode) and isinstance(factor1.valor, str):
+                if factor1.valor in variables:
+                    simbolo = variables[factor1.valor]
+                    factor1.tipo = simbolo['tipo']
+                    factor1.valor = simbolo['valor']
+                else:
+                    print(f"Advertencia: La variable '{factor1.valor}' no está definida en la tabla de símbolos.")
+
+            # Verificar si factor2 es una variable y extraer su valor desde la tabla de símbolos
+            if isinstance(factor2, FactorNode) and isinstance(factor2.valor, str):
+                if factor2.valor in variables:
+                    simbolo = variables[factor2.valor]
+                    factor2.tipo = simbolo['tipo']
+                    factor2.valor = simbolo['valor']
+                else:
+                    print(f"Advertencia: La variable '{factor2.valor}' no está definida en la tabla de símbolos.")
+
+
+            # Realizar la comparación solo si ambos factores tienen un valor definido
+            # print("Comparando", factor1.valor, "con", factor2.valor) 
 
             # Realizar la comparación
             if factor1.valor is not None and factor2.valor is not None:
@@ -174,7 +214,7 @@ def evaluate(node, variables):
                 
         if node.tipo == 'int':
             node.valor = int(node.valor)
-
+        
         # Formatear el nombre del nodo para mostrar el tipo, operador y resultado
         node.nombre = f"{node.nombre} ({node.tipo}: {node.operador}: {node.valor})"
 
@@ -191,17 +231,27 @@ def evaluate(node, variables):
         expr_node = node.hijos[1]
         # Crear un nodo para id que refleje el tipo y valor de la expresión
         if isinstance(id_node, IdentifierNode) and expr_node.tipo and expr_node.valor is not None:
-            # Verificar si el tipo de la expresión coincide con el tipo del identificador
-            if id_node.tipo is None or id_node.tipo == expr_node.tipo:
-                # Si no tiene tipo definido aún o si coincide con el tipo de la expresión, actualizar
-                id_node.tipo = expr_node.tipo
+            # Asignar el tipo desde la tabla de símbolos si está definido
+            if id_node.tipo is None and id_node.variable in variables:
+                id_node.tipo = variables[id_node.variable]['tipo']
+            
+            # Verificar si el tipo de la expresión coincide con el tipo del identificador o si se puede convertir
+            # print(f"Comparando {id_node.variable} ({id_node.tipo}) con {expr_node.tipo} ({expr_node.valor})")
+            if id_node.tipo == expr_node.tipo:
+                # Si el tipo del identificador coincide con el de la expresión, actualizar el valor
                 id_node.valor = expr_node.valor
                 id_node.nombre = f"{id_node.variable} ({id_node.tipo}: {id_node.valor})"
+                # Actualizar el valor en la tabla de símbolos
+                if id_node.variable in variables:
+                    variables[id_node.variable]['valor'] = id_node.valor
+            elif id_node.tipo == 'float' and expr_node.tipo == 'int':
+                # Si el tipo del identificador es float y el tipo de la expresión es int, permitir la conversión
+                id_node.valor = float(expr_node.valor)
+                id_node.nombre = f"{id_node.variable} ({id_node.tipo}: {id_node.valor})"
             else:
-                # Si los tipos no coinciden, mostrar un error
-                id_node.nombre = f"{id_node.variable} (ERROR: tipo incompatible, esperado {id_node.tipo}, encontrado {expr_node.tipo})"
+                # Si los tipos no son compatibles, mostrar un error
+                id_node.nombre = f"{id_node.variable} (ERROR: tipo incompatible)"
                 print(f"Error: tipo incompatible en la asignación de {id_node.variable}. Esperado {id_node.tipo}, encontrado {expr_node.tipo}.")
-
 
 def read_symbol_table(file_path):
     variables = {}
@@ -209,10 +259,12 @@ def read_symbol_table(file_path):
         for line in file:
             parts = line.strip().split('\t')
             if len(parts) >= 4:
-                nombre = parts[0]
-                tipo = parts[1]
+                nombre = parts[0].strip()  # Eliminar espacios en blanco del nombre
+                tipo = parts[1].strip()  # Eliminar espacios en blanco del tipo
                 valor = float(parts[3]) if '.' in parts[3] else int(parts[3])
-                variables[nombre] = {'tipo': tipo, 'valor': valor}
+                loc = parts[2].strip()
+                posicion = parts[4].strip()
+                variables[nombre] = {'tipo': tipo, 'valor': valor, 'loc': loc, 'posicion': posicion}
     return variables
 
 def annotate_tree(root, variables):
@@ -239,11 +291,29 @@ def save_tree(node, file, indent=0):
     for hijo in node.hijos:
         save_tree(hijo, file, indent + 1)
 
+def save_symbol_table(variables, file_path):
+    with open(file_path, 'w') as file:
+        for nombre, info in variables.items():
+            tipo = info['tipo']
+            valor = info['valor']
+            loc = info['loc']
+            posicion = info['posicion']
+            file.write(f"{nombre}\t{tipo}\t{loc}\t{valor}\t{posicion}\n")
+            
+# Ejecutar la TablaSimbolos.py para generar la tabla de símbolos
+import os
+
+os.system('python TablaSimbolos.py')
+
 # Evaluar y guardar el árbol
-ast_root = parse_ast('salidas/ast.txt')
 symbol_table = read_symbol_table('salidas/tabla_simbolos.txt')
+print("Tabla de símbolos cargada:")
+for variable, info in symbol_table.items():
+    print(f"{variable}: {info}")
+ast_root = parse_ast('salidas/ast.txt')
 annotate_tree(ast_root, symbol_table)
 with open('salidas/ast_anotado.txt', 'w') as file:
     save_tree(ast_root, file)
 
 print("Árbol anotado guardado en 'salidas/ast_anotado.txt'")
+save_symbol_table(symbol_table, 'salidas/tabla_simbolos.txt')
